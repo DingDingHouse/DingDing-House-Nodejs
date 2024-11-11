@@ -1,0 +1,62 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - "dev"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Push updated package.json to dev-build branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
+        run: |
+          git fetch origin dev-build:dev-build # Ensure you're up-to-date with dev-build
+          git stash || echo "No changes to stash" # Stash only if there are changes
+          git checkout dev-build
+          git config user.name "TrippyRahul"
+          git config user.email "rahulrawat.trippybug@gmail.com"
+          rm -f package.json
+          git checkout dev -- package.json
+          git add package.json
+          git commit -m "update package.json" || echo "No changes to commit"
+          git push --force origin dev-build
+          git stash pop || echo "No local changes to pop" # Handle no stash scenario
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifact
+          path: ./dist/**/*.js
+
+      - name: Copy Src and app.js in root
+        run: |
+          cp -r ./dist/src .
+          cp ./dist/app.js .
+          rm -rvf ./dist
+          git add .
+          git commit -m "add new build"
+          git push origin dev-build
