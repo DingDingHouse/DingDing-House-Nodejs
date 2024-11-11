@@ -344,34 +344,6 @@ function checkLineSymbols(firstSymbol, line, gameInstance, direction = 'LTR') {
         return { isWinningLine: false, matchCount: 0, matchedIndices: [] };
     }
 }
-function checkforBats(gameInstance) {
-    try {
-        const { settings } = gameInstance;
-        let batsCount = 0;
-        // Count bats and store positions
-        settings.resultSymbolMatrix.forEach((row, i) => {
-            row.forEach((symbol, j) => {
-                if (symbol == settings.Bat.SymbolID.toString() || symbol == settings.BatX2.SymbolID.toString()) {
-                    settings.bats.positions.push(`${j},${i}`);
-                    batsCount += symbol == settings.BatX2.SymbolID.toString() ? 2 : 1;
-                }
-            });
-        });
-        // Apply multiplier based on bat count
-        // If batsCount is 1, use multiplier[12]
-        // If batsCount is 13, use multiplier[0]
-        let multiplierIndex = Math.max(0, settings.bats.multipliers.length - batsCount);
-        if (batsCount === 0) {
-            multiplierIndex = settings.bats.multipliers.length - 1;
-        }
-        settings.bats.payout += settings.BetPerLines * settings.bats.multipliers[multiplierIndex];
-        // console.log("Bats Count:", batsCount);
-        // console.log("Applied Multiplier:", settings.bats.multipliers[multiplierIndex]);
-    }
-    catch (e) {
-        console.error("Error in checkforBats:", e);
-    }
-}
 //checking first non wild symbol in lines which start with wild symbol
 function findFirstNonWildSymbol(line, gameInstance, direction = 'LTR') {
     const { settings } = gameInstance;
@@ -404,6 +376,34 @@ function accessData(symbol, matchCount, gameInstance) {
     catch (error) {
         // console.error("Error in accessData:");
         return 0;
+    }
+}
+function checkforBats(gameInstance) {
+    try {
+        const { settings } = gameInstance;
+        let batsCount = 0;
+        // Count bats and store positions
+        settings.resultSymbolMatrix.forEach((row, i) => {
+            row.forEach((symbol, j) => {
+                if (symbol == settings.Bat.SymbolID.toString() || symbol == settings.BatX2.SymbolID.toString()) {
+                    settings.bats.positions.push(`${j},${i}`);
+                    batsCount += symbol == settings.BatX2.SymbolID.toString() ? 2 : 1;
+                }
+            });
+        });
+        // Apply multiplier based on bat count
+        // If batsCount is 1, use multiplier[12]
+        // If batsCount is 13, use multiplier[0]
+        let multiplierIndex = Math.max(0, settings.bats.multipliers.length - batsCount);
+        if (batsCount === 0) {
+            multiplierIndex = settings.bats.multipliers.length - 1;
+        }
+        settings.bats.payout += settings.BetPerLines * settings.bats.multipliers[multiplierIndex];
+        // console.log("Bats Count:", batsCount);
+        // console.log("Applied Multiplier:", settings.bats.multipliers[multiplierIndex]);
+    }
+    catch (e) {
+        console.error("Error in checkforBats:", e);
     }
 }
 /**

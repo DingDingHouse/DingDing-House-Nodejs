@@ -13,6 +13,7 @@ const socket_1 = require("./socket");
 const userModel_1 = require("./dashboard/users/userModel");
 const sessionManager_1 = require("./dashboard/session/sessionManager");
 const sessionModel_1 = require("./dashboard/session/sessionModel");
+//
 class Manager {
     constructor(username, credits, role, userAgent, socket) {
         this.username = username;

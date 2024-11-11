@@ -35,6 +35,7 @@ const checkLoginToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, f
         }
     }
     catch (error) {
+        console.log("ERROR : ", error);
         next(error);
     }
 });
@@ -64,12 +65,15 @@ const checkGamesToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, f
 exports.checkGamesToggle = checkGamesToggle;
 function isAvaiable() {
     return __awaiter(this, void 0, void 0, function* () {
-        const toggle = yield ToggleModel_1.default.findOne();
+        let toggle = yield ToggleModel_1.default.findOne();
         if (!toggle) {
-            yield ToggleModel_1.default.findOneAndUpdate({}, { availableAt: null }, { new: true, upsert: true });
+            console.log("Toggle not found");
+            console.log("Created a new Toggle ");
+            toggle = yield ToggleModel_1.default.findOneAndUpdate({}, { availableAt: null }, { new: true, upsert: true });
         }
         ;
-        if (toggle.availableAt === null) {
+        console.log("toggle : ", toggle);
+        if (!toggle.availableAt === null) {
             return { underMaintenance: false, availableAt: null };
         }
         const now = new Date();
