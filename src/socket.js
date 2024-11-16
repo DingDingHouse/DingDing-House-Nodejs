@@ -17,7 +17,6 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = require("./dashboard/users/userModel");
 const config_1 = require("./config/config");
 const Player_1 = __importDefault(require("./Player"));
-const http_errors_1 = __importDefault(require("http-errors"));
 const Manager_1 = __importDefault(require("./Manager"));
 const sessionManager_1 = require("./dashboard/session/sessionManager");
 exports.currentActivePlayers = new Map();
@@ -59,16 +58,17 @@ const getManagerDetails = (username) => __awaiter(void 0, void 0, void 0, functi
     throw new Error("Manager not found");
 });
 const handlePlayerConnection = (socket, decoded, userAgent) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const username = decoded.username;
     const origin = socket.handshake.auth.origin;
     const gameId = socket.handshake.auth.gameId;
     const { credits, status } = yield getPlayerDetails(decoded.username);
     let existingPlayer = exports.currentActivePlayers.get(username);
     if (existingPlayer) {
-        if (existingPlayer.playerData.userAgent !== userAgent) {
-            socket.emit("AnotherDevice", "You are already playing on another browser.");
+        if (existingPlayer.playerData.userAgent !== userAgent || ((_a = existingPlayer.platformData.socket) === null || _a === void 0 ? void 0 : _a.connected)) {
+            socket.emit("alert", "NewTab");
             socket.disconnect(true);
-            throw (0, http_errors_1.default)(403, "Already playing on another device");
+            return;
         }
         // Check for platform reconnection
         if (origin) {
@@ -168,9 +168,8 @@ const socketController = (io) => {
         }
         catch (error) {
             console.error("An error occurred during socket connection:", error.message);
-            if (socket.connected) {
-                socket.disconnect(true);
-            }
+            socket.emit("alert", "ForcedExit");
+            socket.disconnect(true);
         }
     }));
     // Error handling middleware

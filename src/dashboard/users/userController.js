@@ -101,6 +101,7 @@ class UserController {
     }
     loginUser(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             try {
                 const { username, password } = req.body;
                 if (!username || !password) {
@@ -132,8 +133,11 @@ class UserController {
                     sameSite: "none",
                 });
                 const socketUser = socket_1.currentActivePlayers.get(username);
+                if (((_a = socketUser === null || socketUser === void 0 ? void 0 : socketUser.platformData.socket) === null || _a === void 0 ? void 0 : _a.connected) || (socketUser === null || socketUser === void 0 ? void 0 : socketUser.gameData.socket)) {
+                    throw (0, http_errors_1.default)(403, "Already logged in on another browser or tab.");
+                }
                 if (socketUser === null || socketUser === void 0 ? void 0 : socketUser.gameData.socket) {
-                    throw (0, http_errors_1.default)(403, "You Are Already Playing on another browser or tab");
+                    throw (0, http_errors_1.default)(403, "You Are Already Playing on another browser or tab.");
                 }
                 res.status(200).json({
                     message: "Login successful",
@@ -142,7 +146,6 @@ class UserController {
                 });
             }
             catch (error) {
-                console.log(error);
                 next(error);
             }
         });
