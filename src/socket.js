@@ -58,33 +58,33 @@ const getManagerDetails = (username) => __awaiter(void 0, void 0, void 0, functi
     throw new Error("Manager not found");
 });
 const handlePlayerConnection = (socket, decoded, userAgent) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     const username = decoded.username;
+    const platformId = socket.handshake.auth.platformId;
     const origin = socket.handshake.auth.origin;
     const gameId = socket.handshake.auth.gameId;
     const { credits, status } = yield getPlayerDetails(decoded.username);
     let existingPlayer = exports.currentActivePlayers.get(username);
     if (existingPlayer) {
-        if (existingPlayer.playerData.userAgent !== userAgent || ((_a = existingPlayer.platformData.socket) === null || _a === void 0 ? void 0 : _a.connected)) {
-            socket.emit("alert", "NewTab");
-            socket.disconnect(true);
-            return;
-        }
-        // Check for platform reconnection
+        // Platform connection handling
         if (origin) {
-            if (existingPlayer.platformData.socket && existingPlayer.platformData.socket.connected) {
-                socket.emit("alert", "Platform already connected. Please disconnect the other session.");
+            if (existingPlayer.platformData.platformId !== platformId) {
+                console.log(`Duplicate platform detected for ${username}`);
+                socket.emit("alert", "NewTab");
                 socket.disconnect(true);
                 return;
             }
-            else {
-                console.log("Reinitializing platform connection");
-                existingPlayer.initializePlatformSocket(socket);
-                existingPlayer.sendAlert(`Platform reconnected for ${username}`, false);
+            if (existingPlayer.platformData.socket && existingPlayer.platformData.socket.connected) {
+                console.log(`Platform already connected for ${username}`);
+                socket.emit("alert", "Platform already connected.");
+                socket.disconnect(true);
                 return;
             }
+            console.log(`Reinitializing platform connection for ${username}`);
+            existingPlayer.initializePlatformSocket(socket);
+            existingPlayer.sendAlert(`Platform reconnected for ${username}`, false);
+            return;
         }
-        // Check for game connection, ensuring platform is ready
+        // Game connection handling
         if (gameId) {
             if (!existingPlayer.platformData.socket || !existingPlayer.platformData.socket.connected) {
                 console.log("Platform connection required before joining a game.");
@@ -98,17 +98,25 @@ const handlePlayerConnection = (socket, decoded, userAgent) => __awaiter(void 0,
             return;
         }
     }
-    // New connection handling with delay-based retry for stability
+    // New platform connection
     if (origin) {
-        console.log("New platform connection detected, initializing player");
+        console.log(`New platform connection detected for ${username}. Initializing.`);
         const newUser = new Player_1.default(username, decoded.role, status, credits, userAgent, socket);
+        newUser.platformData.platformId = platformId;
         exports.currentActivePlayers.set(username, newUser);
-        newUser.sendAlert(`Player initialized for ${newUser.playerData.username} on platform ${origin}`, false);
+        newUser.sendAlert(`Player initialized for ${username} on platform ${origin}`, false);
+        return;
     }
-    else {
+    // Game connection without existing platform connection
+    if (gameId) {
+        console.log(`Game connection blocked for ${username} without active platform.`);
         socket.emit("internalError" /* messageType.ERROR */, "You need to have an active platform connection before joining a game.");
         socket.disconnect(true);
+        return;
     }
+    // Invalid connection attempt
+    socket.emit("internalError" /* messageType.ERROR */, "Invalid connection attempt.");
+    socket.disconnect(true);
 });
 const handleManagerConnection = (socket, decoded, userAgent) => __awaiter(void 0, void 0, void 0, function* () {
     const username = decoded.username;

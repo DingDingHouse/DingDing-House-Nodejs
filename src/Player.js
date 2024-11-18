@@ -39,7 +39,8 @@ class PlayerSocket {
             reconnectionAttempts: 0,
             maxReconnectionAttempts: 3,
             reconnectionTimeout: 1000,
-            cleanedUp: false
+            cleanedUp: false,
+            platformId: socket.handshake.auth.platformId
         };
         this.gameData = {
             socket: null,
@@ -84,6 +85,7 @@ class PlayerSocket {
                     yield this.cleanupGameSocket();
                 }
                 this.platformData.socket = socket;
+                this.platformData.platformId = socket.handshake.auth.platformId;
                 this.messageHandler(false);
                 this.startPlatformHeartbeat();
                 this.onExit();
@@ -147,6 +149,7 @@ class PlayerSocket {
         return __awaiter(this, void 0, void 0, function* () {
             yield sessionManager_1.sessionManager.endPlatformSession(this.playerData.username);
             if (this.platformData.socket) {
+                this.platformData.platformId = null;
                 this.platformData.socket.disconnect(true);
                 this.platformData.socket = null;
             }
