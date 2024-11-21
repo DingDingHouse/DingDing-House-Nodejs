@@ -9,7 +9,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const socket_1 = require("./socket");
 const userModel_1 = require("./dashboard/users/userModel");
 const sessionManager_1 = require("./dashboard/session/sessionManager");
 const sessionModel_1 = require("./dashboard/session/sessionModel");
@@ -43,14 +42,14 @@ class Manager {
             heartbeatInterval: setInterval(() => {
                 // Check if socket is still connected before emitting
                 if (this.socketData.socket) {
-                    const activeUsersData = Array.from(socket_1.currentActivePlayers.values()).map(player => {
-                        const platformSession = sessionManager_1.sessionManager.getPlatformSession(player.playerData.username);
+                    const activeUsersData = Array.from(sessionManager_1.sessionManager.getPlatformSessions().values()).map(player => {
+                        const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(player.playerData.username);
                         return (platformSession === null || platformSession === void 0 ? void 0 : platformSession.getSummary()) || {};
                     });
                     this.socketData.socket.emit("activePlayers", activeUsersData);
                     this.sendData({ type: "CREDITS", payload: { credits: this.credits, role: this.role } });
                 }
-            }, 30000), // 30 seconds interval
+            }, 5000),
             reconnectionAttempts: 0,
             maxReconnectionAttempts: 3,
             reconnectionTimeout: null,
@@ -61,7 +60,6 @@ class Manager {
             console.log(`Manager ${this.username} disconnected`);
             this.handleDisconnection();
         });
-        console.log("Manager initialized with socket ID:", this.socketData.socket.id);
         this.sendData({ type: "CREDITS", payload: { credits: this.credits, role: this.role } });
     }
     handleDisconnection() {
@@ -69,7 +67,7 @@ class Manager {
         this.socketData.socket = null;
         this.socketData.reconnectionTimeout = setTimeout(() => {
             console.log(`Removing manager ${this.username} due to prolonged disconnection`);
-            socket_1.currentActiveManagers.delete(this.username);
+            sessionManager_1.sessionManager.deleteManagerByUsername(this.username);
         }, 60000); // 1-minute timeout for reconnection
     }
     initializeSocketHandler() {
@@ -123,7 +121,7 @@ class Manager {
                     return;
                 }
                 // Notify the player socket of the status change
-                const playerSocket = socket_1.currentActivePlayers.get(data.playerId);
+                const playerSocket = sessionManager_1.sessionManager.getPlayerPlatform(data.playerId);
                 if (playerSocket) {
                     if (data.status === "inactive") {
                         yield playerSocket.forceExit(false);

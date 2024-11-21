@@ -55,6 +55,7 @@ class BaseSlotGame {
                 },
                 bets: [], // Ensure bets is initialized
                 linesCount: 0, // Ensure linesCount is initialized
+                betMultiplier: []
             },
             tempReels: [[]],
             payLine: [],
@@ -113,8 +114,6 @@ class BaseSlotGame {
             currentMoolahCount: 0,
         };
         this.initialize(currentGameData.gameSettings);
-        this.session = sessionManager_1.sessionManager.getPlatformSession(this.getPlayerData().username);
-        this.gameSession = this.session.currentGameSession;
     }
     sendMessage(action, message) {
         this.currentGameData.sendMessage(action, message, true);
@@ -137,7 +136,6 @@ class BaseSlotGame {
     messageHandler(response) {
         switch (response.id) {
             case "SPIN":
-                console.log("SPIN ; ", response);
                 if (this.settings.startGame) {
                     this.settings.currentLines = response.data.currentLines;
                     this.settings.BetPerLines = this.settings.currentGamedata.bets[response.data.currentBet];
@@ -175,12 +173,10 @@ class BaseSlotGame {
         }
     }
     initialize(GameData) {
-        console.log("INITILIZE WITH  : ", GameData.matrix);
         this.settings.Symbols = [];
         this.settings.Weights = [];
         this.settings._winData = new WinData_1.WinData(this);
         this.settings.currentGamedata = GameData[0] || GameData;
-        console.log("AFTER INITILAZATION  : ", this.settings.currentGamedata.matrix);
         this.initSymbols();
         gameUtils_1.UiInitData.paylines = (0, gameUtils_1.convertSymbols)(this.settings.currentGamedata.Symbols);
         this.settings.startGame = true;
@@ -288,9 +284,9 @@ class BaseSlotGame {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const playerData = this.getPlayerData();
-                const currentCredits = playerData.credits;
-                if (this.settings.currentBet > currentCredits) {
-                    console.log("Low Balance : ", currentCredits);
+                const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(playerData.username);
+                if (this.settings.currentBet > playerData.credits) {
+                    console.log("Low Balance : ", playerData.credits);
                     console.log("Current Bet : ", this.settings.currentBet);
                     this.sendError("Low Balance");
                     return;
@@ -317,8 +313,8 @@ class BaseSlotGame {
                         this.settings.freeSpin.freeSpinsAdded = false;
                     }
                 }
-                const spinId = this.gameSession.createSpin();
-                this.gameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
+                const spinId = platformSession.currentGameSession.createSpin();
+                platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
                 this.settings.tempReels = [[]];
                 this.settings.bonus.start = false;
                 this.playerData.totalbet += this.settings.currentBet;
@@ -326,15 +322,7 @@ class BaseSlotGame {
                 const result = new CheckResult_1.CheckResult(this);
                 result.makeResultJson(gameUtils_1.ResultType.normal);
                 const winAmount = this.playerData.currentWining;
-                this.gameSession.updateSpinField(spinId, 'winAmount', winAmount);
-                const specialFeatures = this.getSpecialFeatures();
-                if (specialFeatures) {
-                    this.gameSession.updateSpinField(spinId, 'specialFeatures', specialFeatures);
-                }
-                // Add the winnings to the player's credits
-                const updatedCredits = currentCredits - this.settings.currentBet + winAmount;
-                this.session.updateCredits(updatedCredits);
-                console.log(`Spin result recorded for player: ${this.getPlayerData().username}, win: ${winAmount}`);
+                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
             }
             catch (error) {
                 console.error("Failed to generate spin results:", error);
@@ -342,23 +330,6 @@ class BaseSlotGame {
             }
         });
     }
-    getSpecialFeatures() {
-        const specialFeatures = {};
-        if (this.settings.jackpot.useJackpot) {
-            specialFeatures.jackpot = {
-                triggered: true,
-                amountWon: this.settings.jackpot.defaultAmount,
-            };
-        }
-        if (this.settings.freeSpin.useFreeSpin) {
-            specialFeatures.freeSpin = {
-                triggered: true,
-                freeSpinsRemaining: this.settings.freeSpin.freeSpinCount,
-            };
-        }
-        return Object.keys(specialFeatures).length > 0 ? specialFeatures : null;
-    }
-    //TODO : NEED TO GO THORUGH
     getRTP(spins) {
         try {
             let spend = 0;

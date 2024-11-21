@@ -13,6 +13,7 @@ exports.SLBE = void 0;
 const helper_1 = require("./helper");
 const RandomResultGenerator_1 = require("../RandomResultGenerator");
 const gamble_1 = require("./gamble");
+const sessionManager_1 = require("../../../dashboard/session/sessionManager");
 /**
  * Represents the Blood Eternal Slot  Game Class for handling slot machine operations.
  */
@@ -117,6 +118,7 @@ class SLBE {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const playerData = this.getPlayerData();
+                const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(playerData.username);
                 if (this.settings.currentBet > playerData.credits) {
                     this.sendError("Low Balance");
                     return;
@@ -126,9 +128,13 @@ class SLBE {
                     this.deductPlayerBalance(this.settings.currentBet);
                     this.playerData.totalbet += this.settings.currentBet;
                 }
+                const spinId = platformSession.currentGameSession.createSpin();
+                platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
                 new RandomResultGenerator_1.RandomResultGenerator(this);
                 (0, helper_1.checkForWin)(this);
                 // this.gamebleTesting()
+                const winAmount = this.playerData.currentWining;
+                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
             }
             catch (error) {
                 this.sendError("Spin error");

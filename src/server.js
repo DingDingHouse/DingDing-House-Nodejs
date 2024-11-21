@@ -76,8 +76,7 @@ app.use("/api/users", userRoutes_1.default);
 app.use("/api/transactions", transactionRoutes_1.default);
 app.use("/api/games", gameRoutes_1.default);
 app.use("/api/payouts", checkUser_1.checkUser, checkAdmin_1.checkAdmin, payoutRoutes_1.default);
-// app.use("/api/toggle",checkUser,checkAdmin, toggleRoutes);
-app.use("/api/toggle", ToggleRoutes_1.default);
+app.use("/api/toggle", checkUser_1.checkUser, checkAdmin_1.checkAdmin, ToggleRoutes_1.default);
 const io = new socket_io_1.Server(server, {
     cors: {
         origin: "*",

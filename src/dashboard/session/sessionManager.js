@@ -8,58 +8,81 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sessionManager = void 0;
-const socket_1 = require("../../socket");
 const utils_1 = require("../../utils/utils");
-const PlatformSession_1 = __importDefault(require("./PlatformSession"));
+const gameSession_1 = require("./gameSession");
 const sessionModel_1 = require("./sessionModel");
 class SessionManager {
     constructor() {
         this.platformSessions = new Map();
+        this.currentActiveManagers = new Map();
     }
-    // Start a new platform session when the player connects
-    startPlatformSession(playerId, status, managerName, initialCredits) {
+    startPlatformSession(player) {
         return __awaiter(this, void 0, void 0, function* () {
-            const entryTime = new Date();
-            const platformSession = new PlatformSession_1.default(playerId, status, entryTime, managerName, initialCredits);
-            this.platformSessions.set(playerId, platformSession);
+            this.platformSessions.set(player.playerData.username, player);
             try {
-                const platformSessionData = new sessionModel_1.PlatformSessionModel(platformSession.getSummary());
+                const platformSessionData = new sessionModel_1.PlatformSessionModel(player.getSummary());
                 yield platformSessionData.save();
-                console.log(`Platform session started and saved for player: ${playerId}`);
+                const manager = this.getActiveManagerByUsername(player.managerName);
+                if (manager) {
+                    manager.notifyManager({ type: utils_1.eventType.ENTERED_PLATFORM, payload: player.getSummary() });
+                }
+            }
+            catch (error) {
+                console.error(`Failed to save platform session for player: ${player.playerData.username}`, error);
+            }
+            finally {
+                console.log(`PLATFORM STARTED : `, player.playerData.username);
+            }
+        });
+    }
+    endPlatformSession(playerId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const platformSession = this.getPlayerPlatform(playerId);
+                if (platformSession) {
+                    platformSession.setExitTime();
+                    this.platformSessions.delete(playerId);
+                    const currentManager = this.getActiveManagerByUsername(platformSession.managerName);
+                    if (currentManager) {
+                        currentManager.notifyManager({ type: utils_1.eventType.EXITED_PLATFORM, payload: platformSession.getSummary() });
+                    }
+                    yield sessionModel_1.PlatformSessionModel.updateOne({ playerId: playerId, entryTime: platformSession.entryTime }, { $set: { exitTime: platformSession.exitTime } });
+                }
             }
             catch (error) {
                 console.error(`Failed to save platform session for player: ${playerId}`, error);
             }
-            const currentManager = socket_1.currentActiveManagers.get(managerName);
-            if (currentManager) {
-                currentManager.notifyManager({ type: utils_1.eventType.ENTERED_PLATFORM, payload: platformSession.getSummary() });
-            }
-            console.log(`Platform session started for player: ${playerId}`);
         });
     }
-    // End the platform session when the player disconnects
-    endPlatformSession(playerId) {
+    startGameSession(playerId, gameId, credits) {
         return __awaiter(this, void 0, void 0, function* () {
-            const platformSession = this.platformSessions.get(playerId);
+            var _a;
+            const platformSession = this.getPlayerPlatform(playerId);
             if (platformSession) {
-                platformSession.setExitTime(new Date());
-                this.platformSessions.delete(playerId);
-                const currentManager = socket_1.currentActiveManagers.get(platformSession.managerName);
-                if (currentManager) {
-                    currentManager.notifyManager({ type: utils_1.eventType.EXITED_PLATFORM, payload: platformSession.getSummary() });
+                platformSession.currentGameSession = new gameSession_1.GameSession(playerId, gameId, credits);
+                platformSession.currentGameSession.on("spinUpdated", (summary) => {
+                    const currentManager = this.getActiveManagerByUsername(platformSession.managerName);
+                    if (currentManager) {
+                        currentManager.notifyManager({ type: utils_1.eventType.UPDATED_SPIN, payload: summary });
+                    }
+                });
+                platformSession.currentGameSession.on("sessionEnded", (summary) => {
+                    const currentManager = this.getActiveManagerByUsername(platformSession.managerName);
+                    if (currentManager) {
+                        currentManager.notifyManager({ type: utils_1.eventType.EXITED_GAME, payload: summary });
+                    }
+                });
+                const gameSummary = (_a = platformSession.currentGameSession) === null || _a === void 0 ? void 0 : _a.getSummary();
+                if (gameSummary) {
+                    const currentManager = this.getActiveManagerByUsername(platformSession.managerName);
+                    if (currentManager) {
+                        currentManager.notifyManager({ type: utils_1.eventType.ENTERED_GAME, payload: gameSummary });
+                    }
                 }
-                console.log(`Platform session ended for player: ${playerId}`);
-                try {
-                    yield sessionModel_1.PlatformSessionModel.updateOne({ playerId: playerId, entryTime: platformSession.entryTime }, { $set: { exitTime: platformSession.exitTime } });
-                    console.log(`Platform session saved to database for player: ${playerId}`);
-                }
-                catch (error) {
-                    console.error(`Failed to save platform session for player: ${playerId}`, error);
+                else {
+                    console.error(`No active platform session found for player: ${playerId}`);
                 }
             }
             else {
@@ -67,45 +90,23 @@ class SessionManager {
             }
         });
     }
-    // Start a new Game session under the player's paltform session
-    startGameSession(playerId, gameId, creditsAtEntry) {
-        var _a;
-        const platformSession = this.platformSessions.get(playerId);
-        if (platformSession) {
-            platformSession.startNewGameSession(gameId, creditsAtEntry);
-            const gameSummary = (_a = platformSession.currentGameSession) === null || _a === void 0 ? void 0 : _a.getSummary();
-            if (gameSummary) {
-                const currentManager = socket_1.currentActiveManagers.get(platformSession.managerName);
-                if (currentManager) {
-                    currentManager.notifyManager({ type: utils_1.eventType.ENTERED_GAME, payload: gameSummary });
-                }
-                console.log(`Game session started for player: ${playerId}, game: ${gameId}`);
-            }
-            else {
-                console.error(`No active platform session found for player: ${playerId}`);
-            }
-        }
-        else {
-            console.error(`No active platform session found for player: ${playerId}`);
-        }
-    }
-    // End the current game session for the player
-    endGameSession(playerId, creditsAtExit) {
+    endGameSession(playerId, credits) {
         return __awaiter(this, void 0, void 0, function* () {
-            const platformSession = this.platformSessions.get(playerId);
+            const platformSession = this.getPlayerPlatform(playerId);
             if (platformSession) {
                 const currentSession = platformSession.currentGameSession;
                 if (currentSession) {
-                    currentSession.endSession(creditsAtExit);
+                    currentSession.endSession(credits);
                     const gameSessionData = currentSession.getSummary();
-                    console.log(`Game session ended for player: ${playerId}, game: ${currentSession.gameId}`);
                     try {
-                        yield sessionModel_1.PlatformSessionModel.updateOne({ playerId: playerId, entryTime: platformSession.entryTime }, { $push: { gameSessions: gameSessionData }, $set: { currentRTP: platformSession.rtp } });
-                        console.log(`Game session saved to platform session for player: ${playerId}`);
+                        yield sessionModel_1.PlatformSessionModel.updateOne({ playerId: playerId, entryTime: platformSession.entryTime }, { $push: { gameSessions: gameSessionData }, $set: { currentRTP: platformSession.currentRTP } });
                     }
                     catch (error) {
                         console.error(`Failed to save game session for player: ${playerId}`, error);
                     }
+                }
+                else {
+                    console.error(`No Active Game found for : ${playerId}`);
                 }
             }
             else {
@@ -113,13 +114,45 @@ class SessionManager {
             }
         });
     }
-    // Get platform session for a player
-    getPlatformSession(playerId) {
-        return this.platformSessions.get(playerId);
+    getPlatformSessions() {
+        return this.platformSessions;
     }
-    getCurrentGameSession(playerId) {
+    getPlayerPlatform(username) {
+        if (this.platformSessions.has(username)) {
+            return this.platformSessions.get(username) || null;
+        }
+        return null;
+    }
+    getPlayerCurrentGameSession(username) {
         var _a;
-        return (_a = this.platformSessions.get(playerId)) === null || _a === void 0 ? void 0 : _a.currentGameSession;
+        return (_a = this.getPlayerPlatform(username)) === null || _a === void 0 ? void 0 : _a.currentGameSession;
+    }
+    addManager(username, manager) {
+        if (this.currentActiveManagers.has(username)) {
+            console.warn(`Manager with username "${username}" already exists in currentActiveManagers.`);
+        }
+        else {
+            this.currentActiveManagers.set(username, manager);
+            console.log(`Manager with username "${username}" has been added to currentActiveManagers.`);
+        }
+    }
+    getActiveManagers() {
+        return this.currentActiveManagers;
+    }
+    getActiveManagerByUsername(username) {
+        if (this.currentActiveManagers.has(username)) {
+            return this.currentActiveManagers.get(username) || null;
+        }
+        return null;
+    }
+    deleteManagerByUsername(username) {
+        if (this.currentActiveManagers.has(username)) {
+            this.currentActiveManagers.delete(username);
+            console.log(`Manager with username "${username}" has been removed from currentActiveManagers.`);
+        }
+        else {
+            console.warn(`Manager with username "${username}" not found in currentActiveManagers.`);
+        }
     }
 }
 exports.sessionManager = new SessionManager();

@@ -26,8 +26,6 @@ class SLONE {
         this.settings = (0, helper_1.initializeGameSettings)(currentGameData, this);
         (0, helper_1.generateInitialReel)(this.settings);
         (0, helper_1.sendInitData)(this);
-        this.session = sessionManager_1.sessionManager.getPlatformSession(this.getPlayerData().username);
-        this.gameSession = this.session.currentGameSession;
     }
     get initSymbols() {
         const Symbols = [];
@@ -72,6 +70,7 @@ class SLONE {
             try {
                 //TODO:
                 const playerData = this.settings._winData.slotGame.getPlayerData();
+                const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(playerData.username);
                 // console.log('playerCredits', playerData.credits);
                 //NOTE: low balance
                 if (this.settings.currentBet > playerData.credits) {
@@ -85,8 +84,12 @@ class SLONE {
                 //NOTE: deduct balance
                 this.deductPlayerBalance(this.settings.currentBet);
                 this.playerData.totalbet += this.settings.currentBet;
+                const spinId = platformSession.currentGameSession.createSpin();
+                platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
                 this.randomResultGenerator();
                 this.checkResult();
+                const winAmount = this.playerData.currentWining;
+                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
             }
             catch (error) {
                 this.sendError("Spin error");
@@ -126,15 +129,9 @@ class SLONE {
                 const resultmatrix = this.settings.resultSymbolMatrix;
                 console.log("Result Matrix:", resultmatrix);
                 console.log("base Pay", this.settings.Symbols[resultmatrix[0]].payout);
-                (0, helper_1.calculatePayout)(this);
+                (0, helper_1.checkForWin)(this);
                 const playerData = this.settings._winData.slotGame.getPlayerData();
                 console.log('playerCredits', playerData.credits);
-                const spinId = this.gameSession.createSpin();
-                this.gameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
-                const winAmount = this.playerData.currentWining;
-                this.gameSession.updateSpinField(spinId, 'winAmount', winAmount);
-                const updateCredits = playerData.credits - this.settings.currentBet + winAmount;
-                this.session.updateCredits(updateCredits);
             }
             catch (error) {
                 console.error("Error in checkResult:", error);

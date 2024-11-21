@@ -18,21 +18,29 @@ const gameModel_1 = require("./dashboard/games/gameModel");
 const payoutController_1 = __importDefault(require("./dashboard/payouts/payoutController"));
 const gameUtils_1 = require("./game/Utils/gameUtils");
 const testData_1 = require("./game/testData");
-const socket_1 = require("./socket");
 const GameManager_1 = __importDefault(require("./game/GameManager"));
 const http_errors_1 = __importDefault(require("http-errors"));
-const utils_1 = require("./utils/utils");
 const sessionManager_1 = require("./dashboard/session/sessionManager");
 class PlayerSocket {
-    constructor(username, role, status, credits, userAgent, socket) {
-        if (socket_1.currentActivePlayers.has(username)) {
-            const existingPlayerSocket = socket_1.currentActivePlayers.get(username);
-            if (existingPlayerSocket.platformData.socket.id !== socket.id) {
-                console.log(`User ${username} reconnected with a new socket ID.`);
-                existingPlayerSocket.initializePlatformSocket(socket);
-                return;
-            }
+    constructor(username, role, status, credits, userAgent, socket, managerName) {
+        this.exitTime = null;
+        this.currentRTP = 0;
+        this.currentGameSession = null;
+        const existing = sessionManager_1.sessionManager.getPlayerPlatform(username);
+        if (existing && existing.platformData.socket.id !== socket.id) {
+            existing.initializePlatformSocket(socket);
+            return;
         }
+        this.playerData = {
+            username,
+            role,
+            credits,
+            userAgent,
+            status
+        };
+        this.entryTime = new Date();
+        this.initialCredits = credits;
+        this.managerName = managerName;
         this.platformData = {
             socket: socket,
             heartbeatInterval: setInterval(() => { }, 0),
@@ -50,13 +58,6 @@ class PlayerSocket {
             reconnectionTimeout: 1000,
             cleanedUp: false,
         };
-        this.playerData = {
-            username,
-            role,
-            credits,
-            userAgent,
-            status
-        };
         this.currentGameData = {
             gameId: null,
             username: this.playerData.username,
@@ -71,40 +72,27 @@ class PlayerSocket {
             getPlayerData: () => this.playerData,
         };
         this.initializePlatformSocket(socket);
-        // Add to the users map if it's a new user
-        if (!socket_1.currentActivePlayers.has(username)) {
-            socket_1.currentActivePlayers.set(username, this);
-        }
     }
     initializePlatformSocket(socket) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (socket) {
-                console.log(`Initializing platform connection for user ${this.playerData.username}`);
-                if (this.gameData.socket) {
-                    console.log("Cleaning up existing game session before platform re-initialization.");
-                    yield this.cleanupGameSocket();
-                }
-                this.platformData.socket = socket;
-                this.platformData.platformId = socket.handshake.auth.platformId;
-                this.messageHandler(false);
-                this.startPlatformHeartbeat();
-                this.onExit();
-                this.managerName = yield this.getManager(this.playerData.username);
-                if (!this.managerName) {
-                    throw new Error(`Manager name not found for player ${this.playerData.username}`);
-                }
-                yield sessionManager_1.sessionManager.startPlatformSession(this.playerData.username, this.playerData.status, this.managerName, this.playerData.credits);
-                if (this.platformData.socket) {
-                    this.platformData.socket.on("disconnect", () => {
-                        console.log(`Platform connection lost for user ${this.playerData.username}`);
-                        this.handlePlatformDisconnection();
-                    });
-                }
-                else {
-                    console.error("Socket is null during initialization of disconnect event");
-                }
-                this.sendData({ type: "CREDIT", data: { credits: this.playerData.credits } }, "platform");
+            if (this.gameData.socket) {
+                yield this.cleanupGameSocket();
             }
+            yield sessionManager_1.sessionManager.startPlatformSession(this);
+            this.platformData.socket = socket;
+            this.platformData.platformId = socket.handshake.auth.platformId;
+            this.messageHandler(false);
+            this.startPlatformHeartbeat();
+            this.onExit();
+            if (this.platformData.socket) {
+                this.platformData.socket.on("disconnect", () => {
+                    this.handlePlatformDisconnection();
+                });
+            }
+            else {
+                console.error("Socket is null during initialization of disconnect event");
+            }
+            this.sendData({ type: "CREDIT", data: { credits: this.playerData.credits } }, "platform");
         });
     }
     initializeGameSocket(socket) {
@@ -156,12 +144,6 @@ class PlayerSocket {
             clearInterval(this.platformData.heartbeatInterval);
             this.platformData.reconnectionAttempts = 0;
             this.platformData.cleanedUp = true;
-            // Only remove the user from the map if the socket is still the same
-            // This ensures that if the user has already reconnected with a new socket, they are not removed.
-            const currentPlayerSocket = socket_1.currentActivePlayers.get(this.playerData.username);
-            if (currentPlayerSocket && currentPlayerSocket.platformData.socket === null) {
-                socket_1.currentActivePlayers.delete(this.playerData.username);
-            }
         });
     }
     // Attempt reconnection  for platform or game socket based on provided data
@@ -196,12 +178,13 @@ class PlayerSocket {
     // Start heartbeat for platform socket
     startPlatformHeartbeat() {
         if (this.platformData.socket) {
+            this.sendData({ type: "CREDIT", data: { credits: this.playerData.credits } }, "platform");
             this.platformData.heartbeatInterval = setInterval(() => {
                 if (this.gameData.socket) {
                     this.sendAlert(`Currenlty Playing : ${this.currentGameData.gameId}`);
                 }
                 this.sendData({ type: "CREDIT", data: { credits: this.playerData.credits } }, "platform");
-            }, 10000);
+            }, 5000);
         }
     }
     // Start heartbeat for game socket
@@ -336,7 +319,6 @@ class PlayerSocket {
                 }
                 else {
                     yield this.cleanupPlatformSocket(); // Clean up platform socket
-                    socket_1.currentActivePlayers.delete(this.playerData.username);
                 }
             }));
         }
@@ -353,7 +335,6 @@ class PlayerSocket {
                 // If the user is exiting the platform, clean up both platform and game sockets and remove from the users map
                 yield this.cleanupPlatformSocket(); // Clean up the platform socket
                 yield this.cleanupGameSocket(); // Optionally, also clean up the game socket if needed
-                socket_1.currentActivePlayers.delete(this.playerData.username); // Remove from active users map (platform exit)
             }
         });
     }
@@ -399,11 +380,23 @@ class PlayerSocket {
             this.playerData.credits -= currentBet;
         });
     }
-    getManager(username) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const managerName = yield (0, utils_1.getManagerName)(username);
-            return managerName;
-        });
+    getSummary() {
+        var _a;
+        return {
+            playerId: this.playerData.username,
+            status: this.playerData.status,
+            managerName: this.managerName,
+            initialCredits: this.initialCredits,
+            currentCredits: this.playerData.credits,
+            entryTime: this.entryTime,
+            exitTime: this.exitTime,
+            currentRTP: this.currentRTP,
+            currentGame: ((_a = this.currentGameSession) === null || _a === void 0 ? void 0 : _a.getSummary()) || null,
+            userAgent: this.playerData.userAgent
+        };
+    }
+    setExitTime() {
+        this.exitTime = new Date();
     }
 }
 exports.default = PlayerSocket;

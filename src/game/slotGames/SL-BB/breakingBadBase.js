@@ -27,7 +27,6 @@ class SLBB {
         (0, helper_1.generateInitialReel)(this.settings);
         (0, helper_1.generateInitialBonusReel)(this.settings);
         (0, helper_1.sendInitData)(this);
-        this.session = sessionManager_1.sessionManager.getPlatformSession(this.getPlayerData().username);
     }
     get initSymbols() {
         const Symbols = [];
@@ -73,37 +72,47 @@ class SLBB {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const playerData = this.getPlayerData();
+                const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(playerData.username);
                 const { freeSpin, bonus } = this.settings;
                 if (!freeSpin.isFreeSpin && this.settings.currentBet > playerData.credits) {
                     this.sendError("Low Balance");
                     return;
                 }
-                if (!freeSpin.isFreeSpin) {
+                if (!(this.settings.bonus.count > 0) && !(this.settings.freeSpin.count > 0)) {
                     this.decrementPlayerBalance(this.settings.currentBet);
                     this.playerData.totalbet += this.settings.currentBet;
                 }
-                if (!bonus.isTriggered) {
-                    this.decrementPlayerBalance(this.settings.currentBet);
-                }
+                // if (!bonus.isTriggered) {
+                //   this.decrementPlayerBalance(this.settings.currentBet);
+                // }
                 // if (heisenberg.freeSpin.freeSpinCount === 1) {
                 //   heisenberg.isTriggered= false;
                 // }
-                if (freeSpin.count === 1) {
-                    freeSpin.isFreeSpin = false;
-                }
+                // if (freeSpin.count === 1) {
+                //   freeSpin.isFreeSpin = false;
+                // }
                 if (
                 // freeSpin.isFreeSpin &&
                 freeSpin.count > 0 &&
-                    !this.settings.bonus.isTriggered) {
+                    !this.settings.bonus.isBonus) {
                     freeSpin.count--;
                     this.settings.currentBet = 0;
                     console.log(freeSpin.count, "this.settings.freeSpinCount");
                 }
+                // !( this.settings.bonus.count>0 ) || !( this.settings.freeSpin.count>0 )
                 // this.incrementPlayerBalance(this.playerData.currentWining)
-                if (!this.settings.bonus.isTriggered) {
+                // console.log("bonus", this.settings.bonus.count);
+                // console.log("free", this.settings.freeSpin.count);
+                // console.log("bool", !( this.settings.bonus.count>0 ) || !( this.settings.freeSpin.count>0 ));
+                //
+                const spinId = platformSession.currentGameSession.createSpin();
+                platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
+                if (!(this.settings.bonus.count > 0)) {
                     new RandomResultGenerator_1.RandomResultGenerator(this);
                 }
                 (0, helper_1.checkForWin)(this);
+                const winAmount = this.playerData.currentWining;
+                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
             }
             catch (error) {
                 this.sendError("Spin error");

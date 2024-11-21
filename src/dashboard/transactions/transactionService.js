@@ -17,22 +17,22 @@ const utils_1 = require("../../utils/utils");
 const http_errors_1 = __importDefault(require("http-errors"));
 const transactionModel_1 = __importDefault(require("./transactionModel"));
 const userModel_1 = require("../users/userModel");
-const socket_1 = require("../../socket");
+const sessionManager_1 = require("../session/sessionManager");
 class TransactionService {
     createTransaction(type, manager, client, amount, session) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             // Check if the client is currently in a game via socket connection
-            const socketUser = socket_1.currentActivePlayers.get(client.username);
+            const socketUser = sessionManager_1.sessionManager.getPlayerPlatform(client.username);
             if (socketUser === null || socketUser === void 0 ? void 0 : socketUser.gameData.socket) {
-                throw (0, http_errors_1.default)(403, "Please tell the user to exit from your current game before performing transactions");
+                throw (0, http_errors_1.default)(403, "The client must exit their current game session before initiating a transaction.");
             }
             if (!((_a = utils_1.rolesHierarchy[manager.role]) === null || _a === void 0 ? void 0 : _a.includes(client.role))) {
-                throw (0, http_errors_1.default)(403, `${manager.role} cannot perform transactions with ${client.role}`);
+                throw (0, http_errors_1.default)(403, `A ${manager.role} is not authorized to perform transactions with a ${client.role}.`);
             }
             if (type === "recharge") {
                 if (manager.credits < amount) {
-                    throw (0, http_errors_1.default)(400, "Insufficient credits to recharge");
+                    throw (0, http_errors_1.default)(400, "Insufficient credits available for recharge.");
                 }
                 client.credits += amount;
                 client.totalRecharged += amount;
@@ -40,11 +40,14 @@ class TransactionService {
             }
             else if (type === "redeem") {
                 if (client.credits < amount) {
-                    throw (0, http_errors_1.default)(400, "Client has insufficient credits to redeem");
+                    throw (0, http_errors_1.default)(400, "Client does not have enough credits to redeem.");
                 }
                 client.credits -= amount;
                 client.totalRedeemed += amount;
                 manager.credits += amount;
+            }
+            else {
+                throw (0, http_errors_1.default)(400, "Invalid transaction type specified.");
             }
             const transaction = new transactionModel_1.default({
                 debtor: type === "recharge" ? manager.username : client.username,

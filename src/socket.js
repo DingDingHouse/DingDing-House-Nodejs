@@ -12,15 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.currentActiveManagers = exports.currentActivePlayers = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = require("./dashboard/users/userModel");
 const config_1 = require("./config/config");
 const Player_1 = __importDefault(require("./Player"));
 const Manager_1 = __importDefault(require("./Manager"));
 const sessionManager_1 = require("./dashboard/session/sessionManager");
-exports.currentActivePlayers = new Map();
-exports.currentActiveManagers = new Map();
 const verifySocketToken = (socket) => {
     return new Promise((resolve, reject) => {
         const token = socket.handshake.auth.token;
@@ -44,9 +41,14 @@ const verifySocketToken = (socket) => {
     });
 };
 const getPlayerDetails = (username) => __awaiter(void 0, void 0, void 0, function* () {
-    const player = yield userModel_1.Player.findOne({ username });
+    var _a;
+    const player = yield userModel_1.Player.findOne({ username }).populate("createdBy", "name");
     if (player) {
-        return { credits: player.credits, status: player.status };
+        return {
+            credits: player.credits,
+            status: player.status,
+            managerName: ((_a = player.createdBy) === null || _a === void 0 ? void 0 : _a.name) || null
+        };
     }
     throw new Error("Player not found");
 });
@@ -62,8 +64,8 @@ const handlePlayerConnection = (socket, decoded, userAgent) => __awaiter(void 0,
     const platformId = socket.handshake.auth.platformId;
     const origin = socket.handshake.auth.origin;
     const gameId = socket.handshake.auth.gameId;
-    const { credits, status } = yield getPlayerDetails(decoded.username);
-    let existingPlayer = exports.currentActivePlayers.get(username);
+    const { credits, status, managerName } = yield getPlayerDetails(username);
+    let existingPlayer = sessionManager_1.sessionManager.getPlayerPlatform(username);
     if (existingPlayer) {
         // Platform connection handling
         if (origin) {
@@ -100,16 +102,13 @@ const handlePlayerConnection = (socket, decoded, userAgent) => __awaiter(void 0,
     }
     // New platform connection
     if (origin) {
-        console.log(`New platform connection detected for ${username}. Initializing.`);
-        const newUser = new Player_1.default(username, decoded.role, status, credits, userAgent, socket);
+        const newUser = new Player_1.default(username, decoded.role, status, credits, userAgent, socket, managerName);
         newUser.platformData.platformId = platformId;
-        exports.currentActivePlayers.set(username, newUser);
         newUser.sendAlert(`Player initialized for ${username} on platform ${origin}`, false);
         return;
     }
     // Game connection without existing platform connection
     if (gameId) {
-        console.log(`Game connection blocked for ${username} without active platform.`);
         socket.emit("internalError" /* messageType.ERROR */, "You need to have an active platform connection before joining a game.");
         socket.disconnect(true);
         return;
@@ -122,7 +121,8 @@ const handleManagerConnection = (socket, decoded, userAgent) => __awaiter(void 0
     const username = decoded.username;
     const role = decoded.role;
     const { credits } = yield getManagerDetails(username);
-    let existingManager = exports.currentActiveManagers.get(username);
+    console.log("MANAGER CONNECTION");
+    let existingManager = sessionManager_1.sessionManager.getActiveManagerByUsername(username);
     if (existingManager) {
         console.log(`Reinitializing manager ${username}`);
         if (existingManager.socketData.reconnectionTimeout) {
@@ -133,12 +133,12 @@ const handleManagerConnection = (socket, decoded, userAgent) => __awaiter(void 0
     }
     else {
         const newManager = new Manager_1.default(username, credits, role, userAgent, socket);
-        exports.currentActiveManagers.set(username, newManager);
+        sessionManager_1.sessionManager.addManager(username, newManager);
         socket.emit("alert" /* messageType.ALERT */, `Manager ${username} has been connected.`);
     }
     // Send all active players to the manager upon connection
-    const activeUsersData = Array.from(exports.currentActivePlayers.values()).map(player => {
-        const platformSession = sessionManager_1.sessionManager.getPlatformSession(player.playerData.username);
+    const activeUsersData = Array.from(sessionManager_1.sessionManager.getPlatformSessions().values()).map(player => {
+        const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(player.playerData.username);
         return (platformSession === null || platformSession === void 0 ? void 0 : platformSession.getSummary()) || {};
     });
     socket.emit("activePlayers", activeUsersData);

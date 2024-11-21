@@ -16,6 +16,7 @@ exports.checkGamesToggle = exports.checkLoginToggle = void 0;
 const ToggleModel_1 = __importDefault(require("../Toggle/ToggleModel"));
 const utils_1 = require("../../utils/utils");
 const userModel_1 = require("../users/userModel");
+const http_errors_1 = __importDefault(require("http-errors"));
 const checkLoginToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const companyUsers = yield userModel_1.User.find({ role: 'company' });
@@ -35,7 +36,6 @@ const checkLoginToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, f
         }
     }
     catch (error) {
-        console.log("ERROR : ", error);
         next(error);
     }
 });
@@ -65,15 +65,10 @@ const checkGamesToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, f
 exports.checkGamesToggle = checkGamesToggle;
 function isAvaiable() {
     return __awaiter(this, void 0, void 0, function* () {
-        let toggle = yield ToggleModel_1.default.findOne();
-        if (!toggle) {
-            console.log("Toggle not found");
-            console.log("Created a new Toggle ");
-            toggle = yield ToggleModel_1.default.findOneAndUpdate({}, { availableAt: null }, { new: true, upsert: true });
-        }
-        ;
-        console.log("toggle : ", toggle);
-        if (!toggle.availableAt === null) {
+        const toggle = yield ToggleModel_1.default.findOne();
+        if (!toggle)
+            throw (0, http_errors_1.default)(404, "Toggle not found");
+        if (toggle.availableAt === null) {
             return { underMaintenance: false, availableAt: null };
         }
         const now = new Date();

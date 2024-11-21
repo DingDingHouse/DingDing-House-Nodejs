@@ -28,8 +28,6 @@ class SLCRZ {
         this.settings = (0, helper_1.initializeGameSettings)(currentGameData, this);
         (0, helper_1.generateInitialReel)(this.settings);
         (0, helper_1.sendInitData)(this);
-        this.session = sessionManager_1.sessionManager.getPlatformSession(this.getPlayerData().username);
-        this.gameSession = this.session.currentGameSession;
     }
     get initSymbols() {
         const Symbols = [];
@@ -74,6 +72,7 @@ class SLCRZ {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const playerData = this.getPlayerData();
+                const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(playerData.username);
                 if (this.settings.currentBet > playerData.credits) {
                     this.sendError("Low Balance");
                     return;
@@ -93,14 +92,12 @@ class SLCRZ {
                     this.updatePlayerBalance(this.playerData.currentWining);
                     // makeResultJson(this)
                 }
-                const spinId = this.gameSession.createSpin();
-                this.gameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet * 3);
+                const spinId = platformSession.currentGameSession.createSpin();
+                platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
                 new RandomResultGenerator_1.RandomResultGenerator(this);
                 this.checkResult();
                 const winAmount = this.playerData.currentWining;
-                this.gameSession.updateSpinField(spinId, 'winAmount', winAmount);
-                const updateCredits = playerData.credits - this.settings.currentBet * 3 + winAmount;
-                this.session.updateCredits(updateCredits);
+                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
             }
             catch (error) {
                 this.sendError("Spin error");
