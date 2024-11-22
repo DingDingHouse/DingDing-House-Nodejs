@@ -87,7 +87,7 @@ const handlePlayerConnection = (socket, decoded, userAgent) => __awaiter(void 0,
             return;
         }
         // Game connection handling
-        if (gameId) {
+        if (gameId || !gameId) {
             if (!existingPlayer.platformData.socket || !existingPlayer.platformData.socket.connected) {
                 console.log("Platform connection required before joining a game.");
                 socket.emit("internalError" /* messageType.ERROR */, "Platform connection required before joining a game.");

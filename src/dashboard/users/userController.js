@@ -124,11 +124,11 @@ class UserController {
                     });
                 }
                 const token = jsonwebtoken_1.default.sign({ id: user._id, username: user.username, role: user.role }, config_1.config.jwtSecret, { expiresIn: "7d" });
-                res.cookie("userToken", token, {
-                    maxAge: 1000 * 60 * 60 * 24 * 7,
-                    httpOnly: true,
-                    sameSite: "none",
-                });
+                // res.cookie("userToken", token, {
+                //   maxAge: 1000 * 60 * 60 * 24 * 7,
+                //   httpOnly: true,
+                //   sameSite: "none",
+                // });
                 const socketUser = sessionManager_1.sessionManager.getPlayerPlatform(username);
                 if (((_a = socketUser === null || socketUser === void 0 ? void 0 : socketUser.platformData.socket) === null || _a === void 0 ? void 0 : _a.connected) || (socketUser === null || socketUser === void 0 ? void 0 : socketUser.gameData.socket)) {
                     throw (0, http_errors_1.default)(403, "Already logged in on another browser or tab.");

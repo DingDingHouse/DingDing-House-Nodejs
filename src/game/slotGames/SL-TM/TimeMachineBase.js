@@ -31,7 +31,7 @@ class SLTM {
             this.settings = (0, helper_1.initializeGameSettings)(currentGameData, this);
             console.log("Game settings initialized");
             this.settings.reels = (0, helper_1.generateInitialReel)(this.settings);
-            this.settings.freeSpinReels = (0, helper_1.generateFreeSpinReel)(this.settings);
+            // this.settings.freeSpinReels = generateFreeSpinReel(this.settings);
             // console.log("Initial reels generated:", this.settings.reels);
             (0, helper_1.sendInitData)(this);
             console.log("credits : ", this.getPlayerData().credits);
@@ -98,10 +98,11 @@ class SLTM {
                     return;
                 }
                 //deduct only when freespin is not triggered
-                // if (this.settings.freeSpinCount <= 0) {
-                //   this.decrementPlayerBalance(precisionRound(this.settings.currentBet, 3));
-                //   this.playerData.totalbet += Number(this.settings.currentBet.toFixed(3))
-                // }
+                if (!this.settings.isFreeSpin && !this.settings.isLevelUp) {
+                    console.warn("Deducting player balance for spin");
+                    this.decrementPlayerBalance((0, utils_1.precisionRound)(this.settings.currentBet, 3));
+                    this.playerData.totalbet += Number(this.settings.currentBet.toFixed(3));
+                }
                 this.playerData.totalbet = (0, utils_1.precisionRound)(this.playerData.totalbet, 3);
                 const spinId = platformSession.currentGameSession.createSpin();
                 platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);

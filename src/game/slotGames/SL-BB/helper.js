@@ -34,6 +34,7 @@ function initializeGameSettings(gameData, gameInstance) {
         BetPerLines: 0,
         reels: [],
         bonusReels: [],
+        isCoinCollect: false,
         jackpot: {
             isTriggered: false,
             payout: gameData.gameSettings.jackpot.payout,
@@ -45,8 +46,11 @@ function initializeGameSettings(gameData, gameInstance) {
             isBonus: false,
             isTriggered: false,
             isWalterStash: false,
+            isMegaLink: false,
             count: 0,
             payout: 0,
+            megaLinkCoinValue: gameData.gameSettings.megaLinkCoinValue,
+            megaLinkCoinProb: gameData.gameSettings.megaLinkCoinProb
         },
         freeSpin: {
             isEnabled: gameData.gameSettings.freeSpin.isEnabled,
@@ -54,8 +58,8 @@ function initializeGameSettings(gameData, gameInstance) {
             isFreeSpin: false,
             cashCollectValues: [],
             count: 0,
-            LPValues: gameData.gameSettings.freeSpin.LPValues,
-            LPProbs: gameData.gameSettings.freeSpin.LPProbs,
+            LPValues: gameData.gameSettings.freeSpin.LPValue,
+            LPProbs: gameData.gameSettings.freeSpin.LPValueProbs,
         },
         wild: {
             SymbolName: "Wild",
@@ -96,7 +100,7 @@ function initializeGameSettings(gameData, gameInstance) {
             useWild: false,
             values: []
         },
-        blanks: ["9", "10", "11", "12", "13", "14"],
+        blanks: ["9"],
         cashCollectPrize: {
             isTriggered: false,
             payout: 0
@@ -221,6 +225,7 @@ function sendInitData(gameInstance) {
             BonusReel: gameInstance.settings.bonusReels,
             Lines: gameInstance.currentGameData.gameSettings.linesApiData,
             Bets: gameInstance.settings.currentGamedata.bets,
+            Jackpot: gameInstance.settings.jackpot.payout
         },
         UIData: gameUtils_1.UiInitData,
         PlayerData: {
@@ -248,6 +253,10 @@ function getRandomValue(gameInstance, type) {
         values = settings.jackpot.payout;
         probabilities = settings.jackpot.payoutProbs;
     }
+    else if (type === 'mega') {
+        values = settings.bonus.megaLinkCoinValue;
+        probabilities = settings.bonus.megaLinkCoinProb;
+    }
     else {
         throw new Error("Invalid type, expected 'coin' or 'freespin'");
     }
@@ -272,7 +281,7 @@ function getCoinsValues(gameInstance, matrixType) {
         for (let col = 0; col < matrix[row].length; col++) {
             const symbol = matrix[row][col];
             if (symbol == settings.coins.SymbolID.toString()) {
-                const coinValue = getRandomValue(gameInstance, "coin");
+                let coinValue = getRandomValue(gameInstance, "coin");
                 if (matrixType === 'result') {
                     // Check if index already exists in settings.coins.values
                     const indexExists = settings.coins.values.find(item => item.index[0] === row && item.index[1] === col);
@@ -288,6 +297,21 @@ function getCoinsValues(gameInstance, matrixType) {
                     if (!indexExists) {
                         settings.coins.bonusValues.push({ index: [row, col], value: coinValue });
                         settings.bonus.count = 3;
+                    }
+                }
+                else if (matrixType === 'mega') {
+                    //TODO:
+                    coinValue = getRandomValue(gameInstance, "mega");
+                    // Check if index already exists in settings.coins.bonusValues
+                    const indexExists = settings.coins.bonusValues.find(item => item.index[0] === row && item.index[1] === col);
+                    // Only add the new value if the index does not already exist
+                    if (!indexExists) {
+                        settings.coins.bonusValues.push({ index: [row, col], value: coinValue });
+                        settings.bonus.count = 3;
+                    }
+                    // Only add the new value if the index does not already exist
+                    if (!indexExists) {
+                        settings.coins.values.push({ index: [row, col], value: coinValue });
                     }
                 }
             }
@@ -377,7 +401,7 @@ function accessData(symbol, matchCount, gameInstance) {
 //TODO: jackpot or prize
 function handleJackpot(gameInstance) {
     const { settings } = gameInstance;
-    settings.jackpot.win = getRandomValue(gameInstance, "prizes");
+    settings.jackpot.win = getRandomValue(gameInstance, "prizes") * settings.BetPerLines;
     if (settings.jackpot.win > 0) {
         settings.jackpot.isTriggered = true;
     }
@@ -498,9 +522,13 @@ function checkForWin(gameInstance) {
             });
             console.log(totalWin, "Total win before coins ");
             if (hasCoinSymbols && hasCashCollect && !settings.bonus.isBonus) {
+                //check if cc is in 1st or 
                 coinWins = handleCoinsAndCashCollect(gameInstance, "result");
                 console.log(coinWins, "coin collected");
                 totalWin += coinWins;
+                if (coinWins > 0) {
+                    settings.isCoinCollect = true;
+                }
             }
             if (settings.bonus.isTriggered) {
                 totalWin += settings.bonus.payout;
@@ -518,7 +546,7 @@ function checkForWin(gameInstance) {
                 handleJackpot(gameInstance);
             }
         }
-        if (settings.bonus.count <= 0) {
+        if (settings.bonus.count <= 0 || settings.bonus.isWalterStash) {
             totalWin += settings.bonus.payout;
         }
         if (settings.jackpot.win > 0) {
@@ -526,8 +554,8 @@ function checkForWin(gameInstance) {
         }
         gameInstance.playerData.currentWining = totalWin;
         gameInstance.playerData.haveWon += totalWin;
-        makeResultJson(gameInstance);
         gameInstance.incrementPlayerBalance(gameInstance.playerData.currentWining);
+        makeResultJson(gameInstance);
         if (settings.freeSpin.count <= 0) {
             settings.freeSpin.isFreeSpin = false;
         }
@@ -537,6 +565,7 @@ function checkForWin(gameInstance) {
         if (settings.bonus.count <= 0) {
             settings.bonus.isBonus = false;
             settings.bonus.isWalterStash = false;
+            settings.bonus.isMegaLink = false;
             settings.bonus.payout = 0;
             settings.cashCollect.values = [];
             settings.coins.bonusValues = [];
@@ -545,6 +574,7 @@ function checkForWin(gameInstance) {
                 settings.losPollos.values = [];
             }
         }
+        settings.isCoinCollect = false;
         settings._winData.winningLines = [];
         settings._winData.winningSymbols = [];
         settings.losPollos.values = [];
@@ -563,7 +593,7 @@ function checkForWin(gameInstance) {
 function makeResultJson(gameInstance) {
     try {
         const { settings, playerData } = gameInstance;
-        const credits = gameInstance.getPlayerData().credits + playerData.currentWining;
+        const credits = gameInstance.getPlayerData().credits;
         const Balance = Number(credits.toFixed(2));
         const sendData = {
             GameData: {
@@ -571,6 +601,7 @@ function makeResultJson(gameInstance) {
                 linesToEmit: settings._winData.winningLines,
                 symbolsToEmit: settings._winData.winningSymbols,
                 WinAmount: gameInstance.playerData.currentWining,
+                isCoinCollect: settings.isCoinCollect,
                 freeSpins: {
                     count: settings.freeSpin.count,
                     isNewAdded: settings.freeSpin.isTriggered
@@ -586,6 +617,7 @@ function makeResultJson(gameInstance) {
                 bonus: {
                     isBonus: settings.bonus.isTriggered,
                     isWalterSatash: settings.bonus.isWalterStash,
+                    isMegaLink: settings.bonus.isMegaLink,
                     BonusResult: settings.bonusResultMatrix.map(row => row.map(item => Number(item))),
                     payout: settings.bonus.payout,
                     spinCount: settings.bonus.count,
@@ -599,11 +631,6 @@ function makeResultJson(gameInstance) {
                 haveWon: playerData.haveWon,
             }
         };
-        //FIX: remove logs
-        // console.log("losPollosValues", settings.losPollos.values);
-        // console.log("coins", settings.coins.values);
-        // console.log("linestoemit", settings._winData.winningLines);
-        // console.log("symtoemit", settings._winData.winningSymbols);
         gameInstance.sendMessage('ResultData', sendData);
         console.log(sendData);
         console.log("coins", sendData.GameData.winData.coinValues);

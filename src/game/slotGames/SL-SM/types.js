@@ -4,6 +4,12 @@ exports.specialIcons = void 0;
 var specialIcons;
 (function (specialIcons) {
     specialIcons["wild"] = "Wild";
-    specialIcons["FreeSpin"] = "FreeSpin";
-    specialIcons["scatter"] = "Scatter";
+    specialIcons["bonus"] = "Bonus";
+    specialIcons["stickyBonus"] = "StickyBonus";
+    specialIcons["mystery"] = "Mystery";
+    specialIcons["moonMystery"] = "MoonMystery";
+    specialIcons["mini"] = "mini";
+    specialIcons["minor"] = "minor";
+    specialIcons["major"] = "major";
+    specialIcons["moon"] = "MOON";
 })(specialIcons || (exports.specialIcons = specialIcons = {}));

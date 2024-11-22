@@ -392,16 +392,29 @@ function handleFullReelOfZeus(gameInstance, symbolIdToCheck = 0) {
  * @returns An object indicating whether free spins are triggered and the count of scatter symbols.
  */
 function checkForFreeSpin(gameInstance) {
-    const { resultSymbolMatrix, scatter } = gameInstance.settings;
+    const { resultSymbolMatrix, scatter, _winData } = gameInstance.settings;
     let scatterCount = 0;
-    for (let i = 0; i <= 6; i++) {
-        const reel = resultSymbolMatrix[i];
-        scatterCount += reel.filter(symbol => symbol === scatter.symbolID).length;
+    const scatterIndices = [];
+    for (let col = 0; col < resultSymbolMatrix.length; col++) {
+        const reel = resultSymbolMatrix[col];
+        for (let row = 0; row < reel.length; row++) {
+            if (reel[row] === scatter.symbolID) {
+                scatterCount++;
+                scatterIndices.push({ col, row });
+            }
+        }
     }
     const isFreeSpin = scatterCount >= 3;
-    console.log(`Scatter Count: ${scatterCount}`);
-    console.log(`Free Spin Triggered: ${isFreeSpin}`);
-    return { isFreeSpin, scatterCount };
+    const formattedIndices = scatterIndices.map(({ col, row }) => `${col},${row}`);
+    const validIndices = formattedIndices.filter((index) => index.length > 2);
+    if (validIndices.length > 0) {
+        console.log(validIndices);
+        _winData.winningSymbols.push(validIndices);
+    }
+    // console.log(`Scatter Count: ${scatterCount}`);
+    // console.log(`Scatter Indices:`, scatterIndices);
+    // console.log(`Free Spin Triggered: ${isFreeSpin}`);
+    return { isFreeSpin, scatterCount, scatterIndices };
 }
 /**
  * Handles the logic for awarding free spins based on the number of scatter symbols.
@@ -479,7 +492,7 @@ function makeResultJson(gameInstance) {
             }
         };
         gameInstance.sendMessage('ResultData', sendData);
-        // console.log(sendData.GameData.matchCountofLines, "send Data");
+        // console.log(sendData.GameData.symbolsToEmit, "send Data");
     }
     catch (error) {
         console.error("Error generating result JSON or sending message:", error);

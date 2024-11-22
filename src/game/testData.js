@@ -103,9 +103,7 @@ exports.gameData = [
             [
                 0,
                 1,
-                0,
-                1,
-                0
+                1
             ],
             [
                 2,
@@ -119,10 +117,9 @@ exports.gameData = [
                 0,
                 1,
                 0,
-                1
+                0
             ],
             [
-                1,
                 2,
                 1,
                 2,
@@ -215,6 +212,7 @@ exports.gameData = [
                     "4": 10
                 },
                 "useWildSub": true,
+                "useHeisenberg": false,
                 "multiplier": [
                     [
                         60,
@@ -241,6 +239,7 @@ exports.gameData = [
                     "4": 10
                 },
                 "useWildSub": true,
+                "useHeisenberg": false,
                 "multiplier": [
                     [
                         60,
@@ -267,6 +266,7 @@ exports.gameData = [
                     "4": 10
                 },
                 "useWildSub": true,
+                "useHeisenberg": false,
                 "multiplier": [
                     [
                         60,
@@ -293,6 +293,7 @@ exports.gameData = [
                     "4": 10
                 },
                 "useWildSub": true,
+                "useHeisenberg": false,
                 "multiplier": [
                     [
                         60,
@@ -319,6 +320,7 @@ exports.gameData = [
                     "4": 4
                 },
                 "useWildSub": true,
+                "useHeisenberg": false,
                 "multiplier": [
                     [
                         125,
@@ -345,6 +347,7 @@ exports.gameData = [
                     "4": 4
                 },
                 "useWildSub": true,
+                "useHeisenberg": false,
                 "multiplier": [
                     [
                         125,
@@ -371,6 +374,7 @@ exports.gameData = [
                     "4": 4
                 },
                 "useWildSub": true,
+                "useHeisenberg": false,
                 "multiplier": [
                     [
                         125,
@@ -397,6 +401,7 @@ exports.gameData = [
                     "4": 4
                 },
                 "useWildSub": true,
+                "useHeisenberg": false,
                 "multiplier": [
                     [
                         125,
@@ -451,6 +456,7 @@ exports.gameData = [
                 },
                 "description": "Substitutes for all symbols except Jackpot, Free Spin, Bonus, and Scatter.",
                 "useWildSub": false,
+                "useHeisenberg": false,
                 "multiplier": []
             },
             {
