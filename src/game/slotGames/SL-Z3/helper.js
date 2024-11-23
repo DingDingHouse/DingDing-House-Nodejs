@@ -160,7 +160,7 @@ function checkForWin(gameInstance) {
             }
             const { isWinningLine, matchCount, matchedIndices } = checkLineSymbols(firstSymbol, line, gameInstance, direction);
             switch (true) {
-                case isWinningLine && matchCount >= 3 && !settings.freeSpin.useFreeSpin:
+                case isWinningLine && matchCount >= 4 && !settings.freeSpin.useFreeSpin:
                     // console.log("NOT FREE SPIN");
                     const symbolMultiplierLTR = accessData(firstSymbolLTR, matchCount, gameInstance);
                     // console.log(settings.lastReel, 'lastReel')
@@ -192,7 +192,7 @@ function checkForWin(gameInstance) {
                             break;
                     }
                     break;
-                case isWinningLine && matchCount >= 3 && settings.freeSpin.useFreeSpin:
+                case isWinningLine && matchCount >= 4 && settings.freeSpin.useFreeSpin:
                     // console.log("FREE SPIN");
                     const symbolMultiplierRTL = accessData(firstSymbolRTL, matchCount, gameInstance);
                     // console.log(settings.lastReel, 'lastReel')
@@ -284,10 +284,10 @@ function checkLineSymbols(firstSymbol, line, gameInstance, direction = 'LTR') {
                     matchedIndices.push({ col: i, row: rowIndex });
                     break;
                 default:
-                    return { isWinningLine: matchCount >= 3, matchCount, matchedIndices };
+                    return { isWinningLine: matchCount >= 4, matchCount, matchedIndices };
             }
         }
-        return { isWinningLine: matchCount >= 3, matchCount, matchedIndices };
+        return { isWinningLine: matchCount >= 4, matchCount, matchedIndices };
     }
     catch (error) {
         console.error("Error in checkLineSymbols:", error);
