@@ -5,5 +5,4 @@ var specialIcons;
 (function (specialIcons) {
     specialIcons["wild"] = "Wild";
     specialIcons["FreeSpin"] = "FreeSpin";
-    specialIcons["scatter"] = "Scatter";
 })(specialIcons || (exports.specialIcons = specialIcons = {}));

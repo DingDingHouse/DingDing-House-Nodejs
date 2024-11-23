@@ -33,6 +33,7 @@ function initializeGameSettings(gameData, gameInstance) {
         freeSpinData: gameData.gameSettings.freeSpinData,
         WildMultiplierProb: gameData.gameSettings.WildMultiplierProb,
         WildMultiplier: gameData.gameSettings.WildMultiplier,
+        fsWinningSymbols: [],
         jackpot: {
             symbolName: "",
             symbolsCount: 0,
@@ -47,7 +48,7 @@ function initializeGameSettings(gameData, gameInstance) {
             freeSpinStarted: false,
             freeSpinsAdded: false,
             freeSpinCount: 0,
-            noOfFreeSpins: 0,
+            isNewAdded: 0,
             useFreeSpin: false,
         },
         wild: {
@@ -136,7 +137,7 @@ function checkForWin(gameInstance) {
     // Loop through each row in the first column to start potential winning lines
     for (let row = 0; row < settings.resultSymbolMatrix.length; row++) {
         const symbolId = settings.resultSymbolMatrix[row][0];
-        if (!symbolId || symbolId === wildSymbolId)
+        if (symbolId === null || symbolId === undefined || symbolId === wildSymbolId || symbolId === gameInstance.settings.freeSpin.symbolID)
             continue;
         const symbolData = settings.Symbols.find((s) => s.Id === symbolId);
         if (!symbolData)
@@ -166,7 +167,7 @@ function checkForWin(gameInstance) {
             consecutiveLines = newConsecutiveLines;
         }
         consecutiveLines.forEach((line) => {
-            if (line.count >= 2) {
+            if (line.count >= 3) {
                 console.log(`Winning line found starting from row ${row + 1}. Symbol ID: ${symbolId}, Consecutive count: ${line.count}`);
                 const transformedPositions = line.positions.map((pos) => [pos.row, pos.col]);
                 gameInstance.settings._winData.winningLines.push(transformedPositions);
@@ -175,7 +176,7 @@ function checkForWin(gameInstance) {
                 const baseMultiplier = accessData(symbolId, line.count, gameInstance);
                 let linePayout = baseMultiplier * settings.currentBet;
                 if (line.wildMultiplierTotal > 0) {
-                    linePayout *= (1 + line.wildMultiplierTotal);
+                    linePayout *= (line.wildMultiplierTotal);
                     console.log(`Wild multipliers in line: ${line.wildMultiplierTotal}. Total multiplier applied to payout: ${1 + line.wildMultiplierTotal}`);
                 }
                 totalPayout += linePayout;
@@ -200,12 +201,13 @@ function checkForWin(gameInstance) {
     gameInstance.settings.wildSymbolMultipliers = [];
     gameInstance.settings.freeSpin.useFreeSpin = false;
     gameInstance.playerData.currentWining = 0;
+    gameInstance.settings.fsWinningSymbols = [];
 }
 function getRandomMultiplier(gameInstance) {
     const { settings } = gameInstance;
     const cumulativeProbabilities = [];
-    console.log("settings.WildMultiplierProb", settings.WildMultiplierProb);
-    console.log("WildMultiplier", settings.WildMultiplier);
+    // console.log("settings.WildMultiplierProb",settings.WildMultiplierProb)
+    // console.log("WildMultiplier",settings.WildMultiplier)
     // Calculate cumulative probabilities
     settings.WildMultiplierProb.reduce((acc, prob, index) => {
         cumulativeProbabilities[index] = acc + prob;
@@ -227,29 +229,48 @@ function checkForFreeSpin(gameInstance) {
     const { settings } = gameInstance;
     const freeSpinSymbolId = settings.freeSpin.symbolID; // Access the free spin symbol ID
     let freeSpinSymbolCount = 0;
-    console.log("Free Spin ID", freeSpinSymbolId);
-    // Count occurrences of the free spin symbol in the result matrix
-    settings.resultSymbolMatrix.forEach((row) => {
-        row.forEach((symbol) => {
+    // console.log("Free Spin ID", freeSpinSymbolId);
+    settings.resultSymbolMatrix.forEach((row, rowIndex) => {
+        row.forEach((symbol, colIndex) => {
             if (symbol === freeSpinSymbolId) {
                 freeSpinSymbolCount++;
+                // Push the position [row, col] into fsWinningSymbols
+                settings.fsWinningSymbols.push([rowIndex, colIndex]);
             }
         });
     });
+    // console.log("FS winning symbols ", settings.fsWinningSymbols);
+    let newFreeSpinsAwarded = 0; // Initialize variable for new free spins
     // If 3 or more free spin symbols are found, trigger free spins
-    if (freeSpinSymbolCount >= 7 - settings.freeSpin.freeSpinMuiltiplier.length && freeSpinSymbolCount < 7) {
+    if (freeSpinSymbolCount >=
+        7 - settings.freeSpin.freeSpinMuiltiplier.length &&
+        freeSpinSymbolCount < 7) {
         console.log(`Free Spin triggered! Found ${freeSpinSymbolCount} free spin symbols.`);
         const freeSpinMultiplier = settings.freeSpin.freeSpinMuiltiplier[6 - freeSpinSymbolCount]; // Get multiplier based on count
-        settings.freeSpin.freeSpinCount += freeSpinMultiplier[1]; // Add to free spin count
+        newFreeSpinsAwarded = freeSpinMultiplier[1]; // Set the new free spins awarded
+        // Add to free spin count
+        settings.freeSpin.freeSpinCount += newFreeSpinsAwarded;
         settings.freeSpin.useFreeSpin = true; // Mark free spin as active
-        console.log(`Free Spins awarded: ${settings.freeSpin.freeSpinCount}`);
+        // console.log(`Free Spins awarded: ${settings.freeSpin.freeSpinCount}`);
     }
     if (freeSpinSymbolCount >= 7) {
-        console.log(`Free Spin triggered! Found ${freeSpinSymbolCount} free spin symbols.`);
+        // console.log(
+        //   `Free Spin triggered! Found ${freeSpinSymbolCount} free spin symbols.`
+        // );
         const freeSpinMultiplier = settings.freeSpin.freeSpinMuiltiplier[0]; // Get multiplier based on count
-        settings.freeSpin.freeSpinCount += freeSpinMultiplier[1]; // Add to free spin count
+        newFreeSpinsAwarded = freeSpinMultiplier[1]; // Set the new free spins awarded
+        // Add to free spin count
+        settings.freeSpin.freeSpinCount += newFreeSpinsAwarded;
         settings.freeSpin.useFreeSpin = true; // Mark free spin as active
-        console.log(`Free Spins awarded: ${settings.freeSpin.freeSpinCount}`);
+        // console.log(`Free Spins awarded: ${settings.freeSpin.freeSpinCount}`);
+    }
+    // If freeSpinCount becomes greater than 0 for the first time, set isNewAdded to 0
+    if (settings.freeSpin.freeSpinCount > 0 && !settings.freeSpin.useFreeSpin) {
+        settings.freeSpin.isNewAdded = 0;
+    }
+    else {
+        // Set the isNewAdded variable
+        settings.freeSpin.isNewAdded = newFreeSpinsAwarded;
     }
 }
 function accessData(symbol, matchCount, gameInstance) {
@@ -258,8 +279,8 @@ function accessData(symbol, matchCount, gameInstance) {
         const symbolData = settings.currentGamedata.Symbols.find((s) => s.Id.toString() === symbol.toString());
         if (symbolData) {
             const multiplierArray = symbolData.multiplier;
-            if (multiplierArray && multiplierArray[5 - matchCount]) {
-                return multiplierArray[5 - matchCount][0];
+            if (multiplierArray && multiplierArray[6 - matchCount]) {
+                return multiplierArray[6 - matchCount][0];
             }
         }
         return 0;
@@ -300,7 +321,9 @@ function makeResultJson(gameInstance) {
                 resultMatrix: settings.resultSymbolMatrix,
                 symbolsToEmit: settings._winData.winningSymbols,
                 isFreeSpin: settings.freeSpin.useFreeSpin,
+                fsWinningSymbols: settings.fsWinningSymbols,
                 freeSpinCount: settings.freeSpin.freeSpinCount,
+                isNewAdded: settings.freeSpin.isNewAdded,
                 WildMultipliers: settings.wildSymbolMultipliers
             },
             PlayerData: {
