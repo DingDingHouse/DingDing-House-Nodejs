@@ -153,6 +153,7 @@ function checkForWin(gameInstance) {
                             if (validIndices.length > 0) {
                                 settings._winData.winningSymbols.push(validIndices);
                                 settings._winData.totalWinningAmount = totalPayout * settings.BetPerLines;
+                                playerData.currentWining = settings._winData.totalWinningAmount;
                                 playerData.haveWon += settings._winData.totalWinningAmount;
                             }
                             break;
@@ -350,7 +351,7 @@ function sendInitData(gameInstance) {
 function makeResultJson(gameInstance) {
     try {
         const { settings, playerData } = gameInstance;
-        const credits = gameInstance.getPlayerData().credits;
+        const credits = gameInstance.getPlayerData().credits + playerData.currentWining;
         const Balance = credits.toFixed(2);
         const sendData = {
             GameData: {
@@ -368,7 +369,7 @@ function makeResultJson(gameInstance) {
                 Balance: Balance,
                 totalbet: playerData.totalbet,
                 haveWon: playerData.haveWon,
-                currentWining: settings._winData.totalWinningAmount
+                currentWining: playerData.currentWining
             }
         };
         gameInstance.sendMessage('ResultData', sendData);
