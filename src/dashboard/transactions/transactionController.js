@@ -53,6 +53,9 @@ class TransactionController {
                 const limit = parseInt(req.query.limit) || 10;
                 const search = req.query.search;
                 const filter = req.query.filter || "";
+                const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending order
+                console.log("getTransactions : ");
+                console.log(username + " : " + req.query.sort);
                 let parsedData = {
                     role: "",
                     status: "",
@@ -98,7 +101,7 @@ class TransactionController {
                         $lte: parsedData.amount.To,
                     };
                 }
-                const { transactions, totalTransactions, totalPages, currentPage, outOfRange, } = yield this.transactionService.getTransactions(username, page, limit, query);
+                const { transactions, totalTransactions, totalPages, currentPage, outOfRange, } = yield this.transactionService.getTransactions(username, page, limit, query, "createdAt", sortOrder);
                 if (outOfRange) {
                     return res.status(400).json({
                         message: `Page number ${page} is out of range. There are only ${totalPages} pages available.`,
@@ -132,6 +135,9 @@ class TransactionController {
                 const { subordinateId } = req.params;
                 const page = parseInt(req.query.page) || 1;
                 const limit = parseInt(req.query.limit) || 10;
+                const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending order
+                console.log("getTransactionsBySubId : ");
+                console.log(username + " : " + req.query.sort);
                 const user = yield userModel_1.User.findOne({ username });
                 const subordinate = (yield userModel_1.User.findOne({ _id: subordinateId })) ||
                     (yield userModel_1.Player.findOne({ _id: subordinateId }));
@@ -144,7 +150,7 @@ class TransactionController {
                 let query = {};
                 if (user.role === "company" ||
                     user.subordinates.includes(new mongoose_1.default.Types.ObjectId(subordinateId))) {
-                    const { transactions, totalTransactions, totalPages, currentPage, outOfRange, } = yield this.transactionService.getTransactions(subordinate.username, page, limit, query);
+                    const { transactions, totalTransactions, totalPages, currentPage, outOfRange, } = yield this.transactionService.getTransactions(subordinate.username, page, limit, query, "createdAt", sortOrder);
                     if (outOfRange) {
                         return res.status(400).json({
                             message: `Page number ${page} is out of range. There are only ${totalPages} pages available.`,
@@ -183,6 +189,10 @@ class TransactionController {
                 const limit = parseInt(req.query.limit) || 10;
                 const search = req.query.search;
                 const filter = req.query.filter || "";
+                const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending order
+                const skip = (page - 1) * limit;
+                console.log("GET ALL TRANSACTIONS : ");
+                console.log(username + " : " + req.query.sort);
                 let parsedData = {
                     role: "",
                     status: "",
@@ -230,7 +240,6 @@ class TransactionController {
                         $lte: parsedData.amount.To,
                     };
                 }
-                const skip = (page - 1) * limit;
                 const totalTransactions = yield transactionModel_1.default.countDocuments(query);
                 const totalPages = Math.ceil(totalTransactions / limit);
                 // Check if the requested page is out of range
@@ -244,6 +253,7 @@ class TransactionController {
                     });
                 }
                 const transactions = yield transactionModel_1.default.find(query)
+                    .sort({ "createdAt": sortOrder }) // Sort by the specified field and order
                     .skip(skip)
                     .limit(limit);
                 res.status(200).json({
@@ -252,6 +262,28 @@ class TransactionController {
                     currentPage: page,
                     transactions,
                 });
+                // const skip = (page - 1) * limit;
+                // const totalTransactions = await Transaction.countDocuments(query);
+                // const totalPages = Math.ceil(totalTransactions / limit);
+                // // Check if the requested page is out of range
+                // if (page > totalPages && totalPages !== 0) {
+                //   return res.status(400).json({
+                //     message: `Page number ${page} is out of range. There are only ${totalPages} pages available.`,
+                //     totalTransactions,
+                //     totalPages,
+                //     currentPage: page,
+                //     transactions: [],
+                //   });
+                // }
+                // const transactions = await Transaction.find(query)
+                //   .skip(skip)
+                //   .limit(limit);
+                // res.status(200).json({
+                //   totalTransactions,
+                //   totalPages,
+                //   currentPage: page,
+                //   transactions,
+                // });
             }
             catch (error) {
                 console.error(`Error fetching transactions by client ID: ${error.message}`);

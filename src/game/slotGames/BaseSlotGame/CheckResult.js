@@ -291,26 +291,6 @@ class CheckResult {
             this.currentGame.sendMessage("MoolahResultData", ResultData);
         }
     }
-    // private removeRecurringIndexSymbols(symbolsToEmit: string[][]): string[][] {
-    //     const seen = new Set<string>();
-    //     const result: string[][] = [];
-    //     symbolsToEmit.forEach((subArray) => {
-    //         if (!Array.isArray(subArray)) {
-    //             return;
-    //         }
-    //         const uniqueSubArray: string[] = [];
-    //         subArray.forEach((symbol) => {
-    //             if (!seen.has(symbol)) {
-    //                 seen.add(symbol);
-    //                 uniqueSubArray.push(symbol);
-    //             }
-    //         });
-    //         if (uniqueSubArray.length > 0) {
-    //             result.push(uniqueSubArray);
-    //         }
-    //     });
-    //     return result;
-    // }
     startFreeSpin() {
         this.currentGame.sendMessage('StartedFreeSpin', {});
         this.currentGame.settings.freeSpin.freeSpinStarted = true;

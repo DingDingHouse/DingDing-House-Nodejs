@@ -9,11 +9,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SLPSF = void 0;
+exports.SLSB = void 0;
 const sessionManager_1 = require("../../../dashboard/session/sessionManager");
 const RandomResultGenerator_1 = require("../RandomResultGenerator");
 const helper_1 = require("./helper");
-class SLPSF {
+class SLSB {
     constructor(currentGameData) {
         this.currentGameData = currentGameData;
         this.playerData = {
@@ -76,32 +76,14 @@ class SLPSF {
                     this.sendError("Low Balance");
                     return;
                 }
-                const { freeSpin, currentBet } = this.settings;
-                if (!freeSpin.freeSpinStarted && freeSpin.freeSpinCount === 0) {
-                    this.playerData.totalbet += currentBet;
-                    yield this.deductPlayerBalance(currentBet);
-                }
-                else if (freeSpin.freeSpinStarted && freeSpin.freeSpinCount > 0) {
-                    freeSpin.freeSpinCount--;
-                    freeSpin.freeSpinsAdded = false;
-                    console.log(freeSpin.freeSpinCount, "Remaining Free Spins");
-                    if (freeSpin.freeSpinCount === 0) {
-                        Object.assign(freeSpin, {
-                            freeSpinStarted: false,
-                            freeSpinsAdded: false,
-                            freeSpinCount: 0
-                        });
-                    }
-                }
+                const { currentBet } = this.settings;
+                yield this.deductPlayerBalance(currentBet);
                 const spinId = platformSession.currentGameSession.createSpin();
                 platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
                 yield new RandomResultGenerator_1.RandomResultGenerator(this);
                 (0, helper_1.checkForWin)(this);
-                (0, helper_1.checkForFreeSpin)(this);
-                (0, helper_1.checkForTrumpFreeSpin)(this);
                 const winAmount = this.playerData.currentWining;
                 platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
-                (0, helper_1.makeResultJson)(this);
                 //clear json
                 this.settings.resultSymbolMatrix = [];
                 this.settings._winData.winningLines = [];
@@ -140,4 +122,4 @@ class SLPSF {
         });
     }
 }
-exports.SLPSF = SLPSF;
+exports.SLSB = SLSB;

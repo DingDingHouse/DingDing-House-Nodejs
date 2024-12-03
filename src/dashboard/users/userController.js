@@ -264,6 +264,7 @@ class UserController {
                 const page = parseInt(req.query.page) || 1;
                 const limit = parseInt(req.query.limit) || 10;
                 const skip = (page - 1) * limit;
+                const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending order
                 const filter = req.query.filter || "";
                 const search = req.query.search;
                 let parsedData = {
@@ -318,46 +319,60 @@ class UserController {
                         $lte: parsedData.credits.To,
                     };
                 }
+                // Aggregation pipeline for User collection
+                const userPipeline = [
+                    { $match: query },
+                    { $project: { _id: 1, name: 1, username: 1, status: 1, totalRedeemed: 1, totalRecharged: 1, credits: 1, createdAt: 1, role: 1 } }
+                ];
+                // Combined pipeline with $unionWith for PlayerModel collection
+                const combinedPipeline = [
+                    ...userPipeline,
+                    {
+                        $unionWith: {
+                            coll: "players", // Replace with the actual MongoDB collection name for PlayerModel
+                            pipeline: [
+                                { $match: query },
+                                { $project: { _id: 1, name: 1, username: 1, status: 1, totalRedeemed: 1, totalRecharged: 1, credits: 1, createdAt: 1, role: 1 } }
+                            ]
+                        }
+                    },
+                    { $sort: { createdAt: sortOrder } }, // Global sorting
+                    { $skip: skip }, // Pagination: skip to the correct page
+                    { $limit: limit } // Pagination: limit the number of results
+                ];
+                // Execute the aggregation pipeline
+                const subordinates = yield userModel_1.User.aggregate(combinedPipeline);
+                // Calculate total counts
                 const userCount = yield userModel_1.User.countDocuments(query);
                 const playerCount = yield userModel_1.Player.countDocuments(query);
                 const totalSubordinates = userCount + playerCount;
                 const totalPages = Math.ceil(totalSubordinates / limit);
+                // Response for no data
                 if (totalSubordinates === 0) {
                     return res.status(200).json({
                         message: "No subordinates found",
                         totalSubordinates: 0,
                         totalPages: 0,
                         currentPage: 0,
-                        subordinates: [],
+                        subordinates: []
                     });
                 }
+                // Validate requested page number
                 if (page > totalPages) {
                     return res.status(400).json({
                         message: `Page number ${page} is out of range. There are only ${totalPages} pages available.`,
                         totalSubordinates,
                         totalPages,
                         currentPage: page,
-                        subordinates: [],
+                        subordinates: []
                     });
                 }
-                let users = [];
-                if (skip < userCount) {
-                    users = yield userModel_1.User.find(query).skip(skip).limit(limit);
-                }
-                const remainingLimit = limit - users.length;
-                let players = [];
-                if (remainingLimit > 0) {
-                    const playerSkip = Math.max(0, skip - userCount);
-                    players = yield userModel_1.Player.find(query)
-                        .skip(playerSkip)
-                        .limit(remainingLimit);
-                }
-                const allSubordinates = [...users, ...players];
+                // Success response
                 res.status(200).json({
                     totalSubordinates,
                     totalPages,
                     currentPage: page,
-                    subordinates: allSubordinates,
+                    subordinates
                 });
             }
             catch (error) {
@@ -488,6 +503,7 @@ class UserController {
                 const page = parseInt(req.query.page) || 1;
                 const limit = parseInt(req.query.limit) || 10;
                 const skip = (page - 1) * limit;
+                const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending
                 let userToCheck = currentUser;
                 if (id) {
                     userToCheck = yield userModel_1.User.findById(id);
@@ -553,39 +569,34 @@ class UserController {
                         $lte: parsedData.credits.To,
                     };
                 }
-                let subordinates;
-                let totalSubordinates;
-                if (userToCheck.role === "store") {
-                    totalSubordinates = yield userModel_1.Player.countDocuments(query);
-                    subordinates = yield userModel_1.Player.find(query)
-                        .skip(skip)
-                        .limit(limit)
-                        .select("name username status role totalRecharged totalRedeemed credits");
-                }
-                else if (userToCheck.role === "company") {
-                    const userSubordinatesCount = yield userModel_1.User.countDocuments(query);
-                    const playerSubordinatesCount = yield userModel_1.Player.countDocuments(query);
-                    totalSubordinates = userSubordinatesCount + playerSubordinatesCount;
-                    const userSubordinates = yield userModel_1.User.find(query)
-                        .skip(skip)
-                        .limit(limit)
-                        .select("name username status role totalRecharged totalRedeemed credits");
-                    const remainingLimit = limit - userSubordinates.length;
-                    const playerSubordinates = remainingLimit > 0
-                        ? yield userModel_1.Player.find(query)
-                            .skip(Math.max(skip - userSubordinatesCount, 0))
-                            .limit(remainingLimit)
-                            .select("name username status role totalRecharged totalRedeemed credits")
-                        : [];
-                    subordinates = [...userSubordinates, ...playerSubordinates];
-                }
-                else {
-                    totalSubordinates = yield userModel_1.User.countDocuments(query);
-                    subordinates = yield userModel_1.User.find(query)
-                        .skip(skip)
-                        .select("name username status role totalRecharged totalRedeemed credits");
-                }
+                // Aggregation pipeline
+                const userPipeline = [
+                    { $match: query },
+                    { $project: { _id: 1, name: 1, username: 1, status: 1, totalRedeemed: 1, totalRecharged: 1, credits: 1, createdAt: 1, role: 1 } }
+                ];
+                const combinedPipeline = [
+                    ...userPipeline,
+                    {
+                        $unionWith: {
+                            coll: "players", // Replace with the actual collection name for PlayerModel
+                            pipeline: [
+                                { $match: query },
+                                { $project: { _id: 1, name: 1, username: 1, status: 1, totalRedeemed: 1, totalRecharged: 1, credits: 1, createdAt: 1, role: 1 } }
+                            ]
+                        }
+                    },
+                    { $sort: { "createdAt": sortOrder } }, // Global sorting
+                    { $skip: skip }, // Pagination
+                    { $limit: limit } // Pagination
+                ];
+                // Execute the aggregation
+                const subordinates = yield userModel_1.User.aggregate(combinedPipeline);
+                // Total counts
+                const userCount = yield userModel_1.User.countDocuments(query);
+                const playerCount = yield userModel_1.Player.countDocuments(query);
+                const totalSubordinates = userCount + playerCount;
                 const totalPages = Math.ceil(totalSubordinates / limit);
+                // Handle no results
                 if (totalSubordinates === 0) {
                     return res.status(200).json({
                         message: "No subordinates found",
@@ -595,6 +606,7 @@ class UserController {
                         subordinates: [],
                     });
                 }
+                // Handle out-of-range page
                 if (page > totalPages) {
                     return res.status(400).json({
                         message: `Page number ${page} is out of range. There are only ${totalPages} pages available.`,
@@ -604,6 +616,7 @@ class UserController {
                         subordinates: [],
                     });
                 }
+                // Return response
                 res.status(200).json({
                     totalSubordinates,
                     totalPages,

@@ -66,7 +66,7 @@ class TransactionService {
             return transaction;
         });
     }
-    getTransactions(username, page, limit, query) {
+    getTransactions(username, page, limit, query, sortField, sortOrder) {
         return __awaiter(this, void 0, void 0, function* () {
             const skip = (page - 1) * limit;
             const user = (yield userModel_1.User.findOne({ username })) ||
@@ -102,6 +102,7 @@ class TransactionService {
                     query,
                 ],
             })
+                .sort({ [sortField]: sortOrder }) // Explicit cast to Record<string, SortOrder>
                 .skip(skip)
                 .limit(limit);
             return {

@@ -18,6 +18,7 @@ const buffaloTrailBase_1 = require("./SL-BT/buffaloTrailBase");
 const TimeMachineBase_1 = require("./SL-TM/TimeMachineBase");
 const sizzlingMoonBase_1 = require("./SL-SM/sizzlingMoonBase");
 const president45Base_1 = require("./SL-PSF/president45Base");
+const Starburst_1 = require("./SL-SB/Starburst");
 class SlotGameManager {
     constructor(currentGameData) {
         // console.log("Requesting Game : ",currentGameData.gameSettings.id);
@@ -27,7 +28,8 @@ class SlotGameManager {
             "SL-ONE": OneOfAKindBase_1.SLONE, "SL-LOL": LifeOfLuxury_1.SLLOL, "SL-SR": stinkinRichBase_1.SLSR, "SL-BB": breakingBadBase_1.SLBB, "SL-Z3": zeusBase_1.SLZEUS, "SL-SM": sizzlingMoonBase_1.SLSM,
             "SL-TM": TimeMachineBase_1.SLTM,
             "SL-BT": buffaloTrailBase_1.SLBT,
-            "SL-PSF": president45Base_1.SLPSF
+            "SL-PSF": president45Base_1.SLPSF,
+            "SL-SB": Starburst_1.SLSB
         };
         const slotGameClass = this.gameClassMapping[currentGameData.gameSettings.id];
         if (slotGameClass) {
