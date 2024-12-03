@@ -138,38 +138,38 @@ function checkWin(gameInstance) {
         settings.isLevelUp = false;
         //NOTE: freespin plus one substitute
         if (settings.isFreeSpin) {
-            console.log("Free spin mode active.");
+            // console.log("Free spin mode active.");
             const freeSpinIndex = getRandomIndex(settings.freeSpinRetriggerProbs);
-            console.log("Generated freeSpinIndex:", freeSpinIndex, "from probabilities:", settings.freeSpinRetriggerProbs);
+            // console.log("Generated freeSpinIndex:", freeSpinIndex, "from probabilities:", settings.freeSpinRetriggerProbs);
             let y = 0;
             if (freeSpinIndex !== 0) {
                 y = getRandomIndex([1, 1, 1, 1, 1, 1, 1]);
-                console.log("Generated y index:", y);
+                // console.log("Generated y index:", y);
             }
             switch (freeSpinIndex) {
                 case 0:
-                    console.log("No extra free spin triggered.");
+                    // console.log("No extra free spin triggered.");
                     break;
                 case 1:
-                    console.log("Extra free spin in 1st reel/column at position y:", y);
+                    // console.log("Extra free spin in 1st reel/column at position y:", y);
                     settings.resultSymbolMatrix[y][0] = settings.freeSpin.SymbolId;
                     settings.isFreeSpinTriggered = true;
                     settings.freeSpinCount += 1;
                     break;
                 case 2:
-                    console.log("Extra free spin in 2nd reel/column at position y:", y);
+                    // console.log("Extra free spin in 2nd reel/column at position y:", y);
                     settings.resultSymbolMatrix[y][1] = settings.freeSpin.SymbolId;
                     break;
                 case 3:
-                    console.log("Extra free spin in 3rd reel/column at position y:", y);
+                    // console.log("Extra free spin in 3rd reel/column at position y:", y);
                     settings.resultSymbolMatrix[y][2] = settings.freeSpin.SymbolId;
                     break;
                 case 4:
-                    console.log("Extra free spin in 4th reel/column at position y:", y);
+                    // console.log("Extra free spin in 4th reel/column at position y:", y);
                     settings.resultSymbolMatrix[y][3] = settings.freeSpin.SymbolId;
                     break;
                 case 5:
-                    console.log("Extra free spin in 5th reel/column at position y:", y);
+                    // console.log("Extra free spin in 5th reel/column at position y:", y);
                     settings.resultSymbolMatrix[y][4] = settings.freeSpin.SymbolId;
                     settings.isFreeSpinTriggered = true;
                     settings.freeSpinCount += 1;
@@ -178,8 +178,8 @@ function checkWin(gameInstance) {
                     console.error("Invalid freeSpinIndex:", freeSpinIndex);
                     break;
             }
-            console.log("Updated resultSymbolMatrix:", settings.resultSymbolMatrix);
-            console.log("Free spin count:", settings.freeSpinCount, "Free spin triggered:", settings.isFreeSpinTriggered);
+            // console.log("Updated resultSymbolMatrix:", settings.resultSymbolMatrix);
+            // console.log("Free spin count:", settings.freeSpinCount, "Free spin triggered:", settings.isFreeSpinTriggered);
         }
         const findCombinations = (symbolId, col, path) => {
             // Stop if we've checked all columns or path is complete
@@ -300,8 +300,8 @@ function makeResultJson(gameInstance) {
                 haveWon: playerData.haveWon,
             }
         };
-        console.log("Sending result JSON:");
-        console.log(JSON.stringify(sendData));
+        // console.log("Sending result JSON:");
+        // console.log(JSON.stringify(sendData));
         gameInstance.sendMessage('ResultData', sendData);
     }
     catch (error) {

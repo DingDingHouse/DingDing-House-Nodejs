@@ -242,7 +242,7 @@ function getRandomValue(gameInstance, type) {
     let values;
     let probabilities;
     if (type === 'coin') {
-        values = currentGameData.gameSettings.coinsvalue;
+        values = currentGameData.gameSettings.coinsvalue.map((value) => value * settings.BetPerLines * settings.lineData.length);
         probabilities = currentGameData.gameSettings.coinsvalueprob;
     }
     else if (type === 'freespin') {
@@ -254,7 +254,7 @@ function getRandomValue(gameInstance, type) {
         probabilities = settings.jackpot.payoutProbs;
     }
     else if (type === 'mega') {
-        values = settings.bonus.megaLinkCoinValue;
+        values = settings.bonus.megaLinkCoinValue.map((value) => value * settings.BetPerLines * settings.lineData.length);
         probabilities = settings.bonus.megaLinkCoinProb;
     }
     else {
@@ -485,7 +485,7 @@ function checkForWin(gameInstance) {
         const hasMegaLinkSymbols = hasSymbolInMatrix(resultSymbolMatrix, megaLinkSymbolId);
         const hasLosPollosSymbols = hasSymbolInMatrix(resultSymbolMatrix, losPollosId);
         const hasPrizeCoinSymbols = hasSymbolInMatrix(resultSymbolMatrix, prizeCoinId);
-        console.log("Result Matrix", gameInstance.settings.resultSymbolMatrix);
+        // console.log("Result Matrix", gameInstance.settings.resultSymbolMatrix);
         //NOTE: freespin lp
         settings.freeSpin.isTriggered = false;
         // if()
@@ -506,12 +506,12 @@ function checkForWin(gameInstance) {
                 const { isWinningLine, matchCount, matchedIndices } = checkLineSymbols(firstSymbol, line, gameInstance);
                 if (isWinningLine && matchCount >= 3) {
                     const symbolMultiplier = accessData(firstSymbol, matchCount, gameInstance);
-                    console.log(matchedIndices);
+                    // console.log(matchedIndices)
                     if (symbolMultiplier > 0) {
                         totalWin += symbolMultiplier * settings.BetPerLines;
                         settings._winData.winningLines.push(index);
-                        console.log(`Line ${index + 1}:`, line);
-                        console.log(`Payout multiplier for Line ${index + 1}:`, 'payout', symbolMultiplier);
+                        // console.log(`Line ${index + 1}:`, line);
+                        // console.log(`Payout multiplier for Line ${index + 1}:`, 'payout', symbolMultiplier);
                         const formattedIndices = matchedIndices.map(({ col, row }) => `${col},${row}`);
                         const validIndices = formattedIndices.filter(index => index.length > 2);
                         if (validIndices.length > 0) {
@@ -520,11 +520,11 @@ function checkForWin(gameInstance) {
                     }
                 }
             });
-            console.log(totalWin, "Total win before coins ");
+            // console.log(totalWin, "Total win before coins ");
             if (hasCoinSymbols && hasCashCollect && !settings.bonus.isBonus) {
                 //check if cc is in 1st or 
                 coinWins = handleCoinsAndCashCollect(gameInstance, "result");
-                console.log(coinWins, "coin collected");
+                // console.log(coinWins, "coin collected");
                 totalWin += coinWins;
                 if (coinWins > 0) {
                     settings.isCoinCollect = true;
@@ -563,6 +563,7 @@ function checkForWin(gameInstance) {
          *
          * */
         if (settings.bonus.count <= 0) {
+            settings.bonusResultMatrix = [];
             settings.bonus.isBonus = false;
             settings.bonus.isWalterStash = false;
             settings.bonus.isMegaLink = false;
@@ -616,7 +617,7 @@ function makeResultJson(gameInstance) {
                 },
                 bonus: {
                     isBonus: settings.bonus.isTriggered,
-                    isWalterSatash: settings.bonus.isWalterStash,
+                    isWalterStash: settings.bonus.isWalterStash,
                     isMegaLink: settings.bonus.isMegaLink,
                     BonusResult: settings.bonusResultMatrix.map(row => row.map(item => Number(item))),
                     payout: settings.bonus.payout,
@@ -632,12 +633,13 @@ function makeResultJson(gameInstance) {
             }
         };
         gameInstance.sendMessage('ResultData', sendData);
-        console.log(sendData);
-        console.log("coins", sendData.GameData.winData.coinValues);
-        console.log("Bonus coins", sendData.GameData.bonus.coins);
-        console.log("cc", settings.cashCollect.values);
-        console.log("lp", sendData.GameData.winData.losPollos);
-        console.log("symbolsToEmit", sendData.GameData.symbolsToEmit);
+        // console.log(sendData);
+        // console.log("coins", sendData.GameData.winData.coinValues);
+        // console.log("Bonus coins", sendData.GameData.bonus.coins);
+        // console.log("cc", settings.cashCollect.values);
+        //
+        // console.log("lp", sendData.GameData.winData.losPollos);
+        // console.log("symbolsToEmit", sendData.GameData.symbolsToEmit);
     }
     catch (error) {
         console.error("Error generating result JSON or sending message:", error);

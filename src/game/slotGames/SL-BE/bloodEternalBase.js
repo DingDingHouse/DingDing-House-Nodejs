@@ -57,7 +57,7 @@ class SLBE {
             case "SPIN":
                 this.prepareSpin(response.data);
                 this.spinResult();
-                // this.getRTP(response.data.spins || 1);
+                this.getRTP(response.data.spins || 1);
                 break;
             case "GAMBLEINIT":
                 const sendData = (0, gamble_1.sendInitGambleData)();
@@ -142,6 +142,7 @@ class SLBE {
             }
         });
     }
+    //
     getRTP(spins) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

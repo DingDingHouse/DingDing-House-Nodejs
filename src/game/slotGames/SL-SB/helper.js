@@ -3,13 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.initializeGameSettings = initializeGameSettings;
 exports.generateInitialReel = generateInitialReel;
 exports.makePayLines = makePayLines;
-exports.checkForWin = checkForWin;
-exports.wildExpansion = wildExpansion;
 exports.sendInitData = sendInitData;
+exports.checkForWin = checkForWin;
 exports.makeResultJson = makeResultJson;
 const WinData_1 = require("../BaseSlotGame/WinData");
 const gameUtils_1 = require("../../Utils/gameUtils");
 const types_1 = require("./types");
+const RandomResultGenerator_1 = require("../RandomResultGenerator");
 /**
  * Initializes the game settings using the provided game data and game instance.
  * @param gameData - The data used to configure the game settings.
@@ -30,9 +30,9 @@ function initializeGameSettings(gameData, gameInstance) {
         currentLines: 0,
         BetPerLines: 0,
         reels: [],
-        isWildExpandedReels: [],
-        isWildExpanded: false,
-        isWildExpandedCount: 0,
+        isStarBurst: false,
+        starBurstReel: [],
+        starBurstResponse: [],
         wild: {
             SymbolName: "",
             SymbolID: -1,
@@ -89,99 +89,6 @@ function handleSpecialSymbols(symbol, gameInstance) {
             break;
     }
 }
-//CHECK WINS ON PAYLINES WITH OR WITHOUT WILD
-function checkForWin(gameInstance) {
-    try {
-        const { settings } = gameInstance;
-        if (settings.isWildExpandedReels.length === 2 && settings.isWildExpanded) {
-            console.log("Wild expansion limit reached. No further win checks will occur.");
-            return;
-        }
-        const winningLines = [];
-        let totalPayout = 0;
-        if (settings.isWildExpandedReels.length < 2) {
-            wildExpansion(gameInstance);
-            console.log("CHECKING ON REEL", JSON.stringify(settings.resultSymbolMatrix));
-        }
-        settings.lineData.forEach((line, index) => {
-            const firstSymbolPositionLTR = line[0];
-            const firstSymbolPositionRTL = line[line.length - 1];
-            // Get first symbols for both directions
-            let firstSymbolLTR = settings.resultSymbolMatrix[firstSymbolPositionLTR][0];
-            let firstSymbolRTL = settings.resultSymbolMatrix[firstSymbolPositionRTL][line.length - 1];
-            // Handle wild symbols for both directions
-            if (firstSymbolLTR === settings.wild.SymbolID) {
-                firstSymbolLTR = findFirstNonWildSymbol(line, gameInstance);
-            }
-            if (firstSymbolRTL === settings.wild.SymbolID) {
-                firstSymbolRTL = findFirstNonWildSymbol(line, gameInstance, 'RTL');
-            }
-            // Left-to-right check
-            const LTRResult = checkLineSymbols(firstSymbolLTR, line, gameInstance, 'LTR');
-            if (LTRResult.isWinningLine && LTRResult.matchCount >= 3) {
-                const symbolMultiplierLTR = accessData(firstSymbolLTR, LTRResult.matchCount, gameInstance);
-                if (symbolMultiplierLTR > 0) {
-                    const payout = symbolMultiplierLTR * gameInstance.settings.BetPerLines;
-                    totalPayout += payout;
-                    gameInstance.playerData.currentWining += payout;
-                    settings._winData.winningLines.push(index + 1);
-                    winningLines.push({
-                        line,
-                        symbol: firstSymbolLTR,
-                        multiplier: symbolMultiplierLTR,
-                        matchCount: LTRResult.matchCount,
-                        direction: 'LTR'
-                    });
-                    const formattedIndices = LTRResult.matchedIndices.map(({ col, row }) => `${col},${row}`);
-                    const validIndices = formattedIndices.filter((index) => index.length > 2);
-                    if (validIndices.length > 0) {
-                        console.log(validIndices);
-                        settings._winData.winningSymbols.push(validIndices);
-                        settings._winData.totalWinningAmount = totalPayout * settings.BetPerLines;
-                        console.log(settings._winData.totalWinningAmount);
-                    }
-                    console.log(`Line ${index + 1} (LTR):`, line);
-                    console.log(`Payout for LTR Line ${index + 1}:`, "payout", payout);
-                    return;
-                }
-            }
-            // Right-to-left check
-            const RTLResult = checkLineSymbols(firstSymbolRTL, line, gameInstance, 'RTL');
-            if (RTLResult.isWinningLine && RTLResult.matchCount >= 3) {
-                const symbolMultiplierRTL = accessData(firstSymbolRTL, RTLResult.matchCount, gameInstance);
-                if (symbolMultiplierRTL > 0) {
-                    const payout = symbolMultiplierRTL * gameInstance.settings.BetPerLines;
-                    totalPayout += payout;
-                    gameInstance.playerData.currentWining += payout;
-                    settings._winData.winningLines.push(index + 1);
-                    winningLines.push({
-                        line,
-                        symbol: firstSymbolRTL,
-                        multiplier: symbolMultiplierRTL,
-                        matchCount: RTLResult.matchCount,
-                        direction: 'RTL'
-                    });
-                    const formattedIndices = RTLResult.matchedIndices.map(({ col, row }) => `${col},${row}`);
-                    const validIndices = formattedIndices.filter((index) => index.length > 2);
-                    if (validIndices.length > 0) {
-                        console.log(validIndices);
-                        settings._winData.winningSymbols.push(validIndices);
-                        settings._winData.totalWinningAmount = totalPayout * settings.BetPerLines;
-                        console.log(settings._winData.totalWinningAmount);
-                    }
-                    console.log(`Line ${index + 1} (RTL):`, line);
-                    console.log(`Payout for RTL Line ${index + 1}:`, "payout", payout);
-                }
-            }
-        });
-        gameInstance.playerData.currentWining = totalPayout;
-        return winningLines;
-    }
-    catch (error) {
-        console.error("Error in checkForWin:", error);
-        return [];
-    }
-}
 function checkLineSymbols(firstSymbol, line, gameInstance, direction = 'LTR') {
     try {
         const { settings } = gameInstance;
@@ -201,7 +108,7 @@ function checkLineSymbols(firstSymbol, line, gameInstance, direction = 'LTR') {
                 isWild = true;
             }
             if (symbol === undefined) {
-                console.error(`Symbol at position [${rowIndex}, ${i}] is undefined.`);
+                // console.error(`Symbol at position [${rowIndex}, ${i}] is undefined.`);
                 return { isWinningLine: false, matchCount: 0, matchedIndices: [], isWild };
             }
             switch (true) {
@@ -241,42 +148,45 @@ function findFirstNonWildSymbol(line, gameInstance, direction = 'LTR') {
     }
     return wildSymbol;
 }
-function wildExpansion(gameInstance) {
-    const { settings } = gameInstance;
-    if (settings.isWildExpandedReels.length === 2) {
-        console.log("Wild expansion limit reache");
-        return;
-    }
-    const originalReels = {};
-    console.log("Original Matrix ", JSON.stringify(settings.resultSymbolMatrix));
-    for (let reelIndex = 1; reelIndex <= 3; reelIndex++) {
-        if (settings.isWildExpandedReels.includes(reelIndex)) {
-            continue;
-        }
-        if (settings.resultSymbolMatrix.some(row => row[reelIndex] === settings.wild.SymbolID)) {
-            settings.isWildExpanded = true;
-            originalReels[reelIndex] = settings.resultSymbolMatrix.map(row => row[reelIndex]);
-            settings.resultSymbolMatrix.forEach(row => {
-                row[reelIndex] = settings.wild.SymbolID;
-            });
-            console.log(`Reel ${reelIndex} changed to all wild symbols.`);
-            settings.isWildExpandedReels.push(reelIndex);
-            if (settings.isWildExpandedReels.length === 2) {
-                console.log("limit reached ");
-                break;
-            }
-        }
-        else {
-            console.log(`No wild detected ${reelIndex}.`);
-        }
-    }
-    if (!settings.isWildExpanded) {
-        console.log("No wild symbols detected or expanded.");
-        return;
-    }
-    checkForWin(gameInstance);
-    makeResultJson(gameInstance);
-}
+// export function wildExpansion(gameInstance: SLSB): void {
+//     const { settings } = gameInstance;
+//     if (settings.isWildExpandedReels.length === 2) {
+//         console.log("Wild expansion limit reache");
+//         return;
+//     }
+//     const originalReels: Record<number, string[]> = {};
+//     console.log("Original Matrix ", JSON.stringify(settings.resultSymbolMatrix));
+//     for (let reelIndex = 1; reelIndex <= 3; reelIndex++) {
+//         if (settings.isWildExpandedReels.includes(reelIndex)) {
+//             continue;
+//         }
+//
+//         if (settings.resultSymbolMatrix.some(row => row[reelIndex] === settings.wild.SymbolID)) {
+//             settings.isWildExpanded = true;
+//
+//             originalReels[reelIndex] = settings.resultSymbolMatrix.map(row => row[reelIndex]);
+//             settings.resultSymbolMatrix.forEach(row => {
+//                 row[reelIndex] = settings.wild.SymbolID;
+//             });
+//
+//             console.log(`Reel ${reelIndex} changed to all wild symbols.`);
+//             settings.isWildExpandedReels.push(reelIndex);
+//             if (settings.isWildExpandedReels.length === 2) {
+//                 console.log("limit reached ");
+//                 break;
+//             }
+//         } else {
+//             console.log(`No wild detected ${reelIndex}.`);
+//         }
+//     }
+//     if (!settings.isWildExpanded) {
+//         console.log("No wild symbols detected or expanded.");
+//         return;
+//     }
+//
+//     checkForWin(gameInstance);
+//     makeResultJson(gameInstance);
+// }
 //payouts to user according to symbols count in matched lines
 function accessData(symbol, matchCount, gameInstance) {
     const { settings } = gameInstance;
@@ -291,7 +201,7 @@ function accessData(symbol, matchCount, gameInstance) {
         return 0;
     }
     catch (error) {
-        // console.error("Error in accessData:");
+        console.error("Error in accessData:");
         return 0;
     }
 }
@@ -318,6 +228,175 @@ function sendInitData(gameInstance) {
     };
     gameInstance.sendMessage("InitData", dataToSend);
 }
+//CHECK WINS ON PAYLINES WITH OR WITHOUT WILD
+function checkForWin(gameInstance) {
+    try {
+        const { settings } = gameInstance;
+        // if (settings.isWildExpandedReels.length === 2 && settings.isWildExpanded) {
+        //   console.log("Wild expansion limit reached. No further win checks will occur.");
+        //   return;
+        // }
+        const winningLines = [];
+        let totalPayout = 0;
+        //NOTE: if starburst is true check if starBurstReel can be increased
+        if (settings.isStarBurst) {
+            settings.isStarBurst = false;
+            settings.resultSymbolMatrix.forEach((row, rowIndex) => {
+                [1, 2, 3].forEach((columnIndex) => {
+                    if (settings.resultSymbolMatrix[rowIndex][columnIndex] == settings.wild.SymbolID &&
+                        !settings.starBurstReel.includes(columnIndex)) {
+                        settings.isStarBurst = true;
+                        settings.starBurstReel.push(columnIndex);
+                    }
+                });
+            });
+        }
+        else {
+            //NOTE: check for starburst
+            settings.resultSymbolMatrix.forEach((row, rowIndex) => {
+                [1, 2, 3].forEach((columnIndex) => {
+                    if (settings.resultSymbolMatrix[rowIndex][columnIndex] == settings.wild.SymbolID
+                        && !settings.starBurstReel.includes(columnIndex)) {
+                        settings.isStarBurst = true;
+                        settings.starBurstReel.push(columnIndex);
+                    }
+                });
+            });
+        }
+        //NOTE: swap wild in resMatrix
+        //
+        if (settings.starBurstReel.length > 0) {
+            settings.resultSymbolMatrix.forEach((row, rowIndex) => {
+                settings.starBurstReel.forEach((columnIndex) => {
+                    settings.resultSymbolMatrix[rowIndex][columnIndex] = settings.wild.SymbolID;
+                });
+            });
+            // console.info("after swap:");
+            // console.info(settings.resultSymbolMatrix);
+        }
+        // if (settings.isWildExpandedReels.length < 2) {
+        //     wildExpansion(gameInstance);
+        //     console.log("CHECKING ON REEL", JSON.stringify(settings.resultSymbolMatrix));
+        // }
+        settings.lineData.forEach((line, index) => {
+            const firstSymbolPositionLTR = line[0];
+            const firstSymbolPositionRTL = line[line.length - 1];
+            // Get first symbols for both directions
+            let firstSymbolLTR = settings.resultSymbolMatrix[firstSymbolPositionLTR][0];
+            let firstSymbolRTL = settings.resultSymbolMatrix[firstSymbolPositionRTL][line.length - 1];
+            // Handle wild symbols for both directions
+            if (firstSymbolLTR === settings.wild.SymbolID) {
+                firstSymbolLTR = findFirstNonWildSymbol(line, gameInstance);
+            }
+            if (firstSymbolRTL === settings.wild.SymbolID) {
+                firstSymbolRTL = findFirstNonWildSymbol(line, gameInstance, 'RTL');
+            }
+            // Left-to-right check
+            const LTRResult = checkLineSymbols(firstSymbolLTR, line, gameInstance, 'LTR');
+            if (LTRResult.isWinningLine && LTRResult.matchCount >= 3) {
+                const symbolMultiplierLTR = accessData(firstSymbolLTR, LTRResult.matchCount, gameInstance);
+                if (symbolMultiplierLTR > 0) {
+                    const payout = symbolMultiplierLTR * gameInstance.settings.BetPerLines;
+                    totalPayout += payout;
+                    gameInstance.playerData.currentWining += payout;
+                    settings._winData.winningLines.push(index + 1);
+                    winningLines.push({
+                        line,
+                        symbol: firstSymbolLTR,
+                        multiplier: symbolMultiplierLTR,
+                        matchCount: LTRResult.matchCount,
+                        direction: 'LTR'
+                    });
+                    const formattedIndices = LTRResult.matchedIndices.map(({ col, row }) => `${col},${row}`);
+                    const validIndices = formattedIndices.filter((index) => index.length > 2);
+                    if (validIndices.length > 0) {
+                        // console.log(validIndices);
+                        settings._winData.winningSymbols.push(validIndices);
+                        settings._winData.totalWinningAmount = totalPayout * settings.BetPerLines;
+                        // console.log(settings._winData.totalWinningAmount)
+                    }
+                    // console.log(`Line ${index + 1} (LTR):`, line);
+                    // console.log(`Payout for LTR Line ${index + 1}:`, "payout", payout);
+                    return;
+                }
+            }
+            // Right-to-left check
+            const RTLResult = checkLineSymbols(firstSymbolRTL, line, gameInstance, 'RTL');
+            if (RTLResult.isWinningLine && RTLResult.matchCount >= 3) {
+                const symbolMultiplierRTL = accessData(firstSymbolRTL, RTLResult.matchCount, gameInstance);
+                if (symbolMultiplierRTL > 0) {
+                    const payout = symbolMultiplierRTL * gameInstance.settings.BetPerLines;
+                    totalPayout += payout;
+                    gameInstance.playerData.currentWining += payout;
+                    settings._winData.winningLines.push(index + 1);
+                    winningLines.push({
+                        line,
+                        symbol: firstSymbolRTL,
+                        multiplier: symbolMultiplierRTL,
+                        matchCount: RTLResult.matchCount,
+                        direction: 'RTL'
+                    });
+                    const formattedIndices = RTLResult.matchedIndices.map(({ col, row }) => `${col},${row}`);
+                    const validIndices = formattedIndices.filter((index) => index.length > 2);
+                    if (validIndices.length > 0) {
+                        // console.log(validIndices);
+                        settings._winData.winningSymbols.push(validIndices);
+                        settings._winData.totalWinningAmount = totalPayout * settings.BetPerLines;
+                        // console.log(settings._winData.totalWinningAmount)
+                    }
+                    // console.log(`Line ${index + 1} (RTL):`, line);
+                    // console.log(`Payout for RTL Line ${index + 1}:`, "payout", payout);
+                }
+            }
+        });
+        //NOTE: not starburst
+        if (!settings.isStarBurst && settings.starBurstReel.length === 0) {
+            gameInstance.playerData.currentWining = totalPayout;
+            makeResultJson(gameInstance);
+            settings.starBurstReel = [];
+            settings.isStarBurst = false;
+            settings.starBurstResponse = [];
+            //NOTE: starburst last spin
+        }
+        else if (!settings.isStarBurst && settings.starBurstReel.length > 0) {
+            settings.starBurstResponse.push({
+                resultMatrix: settings.resultSymbolMatrix,
+                symbolsToEmit: settings._winData.winningSymbols,
+                linesToEmit: settings._winData.winningLines,
+                payout: totalPayout
+            });
+            //FIX:  clearing redundant data .remove it later maybe 
+            settings.resultSymbolMatrix = [];
+            settings._winData.winningLines = [];
+            settings._winData.winningSymbols = [];
+            makeResultJson(gameInstance);
+            settings.starBurstReel = [];
+            settings.isStarBurst = false;
+            settings.starBurstResponse = [];
+            //NOTE: starburst spins
+        }
+        else {
+            settings.starBurstResponse.push({
+                resultMatrix: settings.resultSymbolMatrix,
+                symbolsToEmit: settings._winData.winningSymbols,
+                linesToEmit: settings._winData.winningLines,
+                payout: totalPayout
+            });
+            settings._winData.winningLines = [];
+            settings._winData.winningSymbols = [];
+            //NOTE: run checkwin again since it is a freespin
+            new RandomResultGenerator_1.RandomResultGenerator(gameInstance);
+            checkForWin(gameInstance);
+        }
+        settings._winData.winningLines = [];
+        settings._winData.winningSymbols = [];
+        return winningLines;
+    }
+    catch (error) {
+        console.error("Error in checkForWin:", error);
+        return [];
+    }
+}
 //MAKERESULT JSON FOR FRONTENT SIDE
 function makeResultJson(gameInstance) {
     try {
@@ -329,6 +408,9 @@ function makeResultJson(gameInstance) {
                 resultSymbols: settings.resultSymbolMatrix,
                 linesToEmit: settings._winData.winningLines,
                 symbolsToEmit: settings._winData.winningSymbols,
+                isStarBurst: settings.starBurstReel.length > 0,
+                starBurstReel: settings.starBurstReel,
+                starBurstResponse: settings.starBurstResponse
             },
             PlayerData: {
                 Balance: Balance,
@@ -337,6 +419,7 @@ function makeResultJson(gameInstance) {
                 currentWining: settings._winData.totalWinningAmount
             }
         };
+        console.log(JSON.stringify(sendData));
         gameInstance.sendMessage('ResultData', sendData);
     }
     catch (error) {

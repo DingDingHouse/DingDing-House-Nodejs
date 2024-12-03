@@ -133,7 +133,7 @@ function checkForWin(gameInstance) {
         // Remove elements from each reel in the specified sequence: 5, 4, 3, 2, 1, 0
         settings.resultSymbolMatrix = reduceMatrix(gameInstance);
         handleFullReelOfZeus(gameInstance);
-        console.log(settings.resultSymbolMatrix, "result symbol matrix column replace to wild(10)");
+        // console.log(settings.resultSymbolMatrix, "result symbol matrix column replace to wild(10)");
         // Subsitute full reel of zeus with wild
         const winningLines = [];
         let totalPayout = 0;
@@ -166,7 +166,7 @@ function checkForWin(gameInstance) {
                     // console.log(settings.lastReel, 'lastReel')
                     switch (true) {
                         case symbolMultiplierLTR > 0:
-                            const payout = symbolMultiplierLTR * settings.BetPerLines;
+                            const payout = symbolMultiplierLTR * settings.currentBet;
                             totalPayout += payout;
                             settings._winData.winningLines.push(index + 1);
                             winningLines.push({
@@ -198,7 +198,7 @@ function checkForWin(gameInstance) {
                     // console.log(settings.lastReel, 'lastReel')
                     switch (true) {
                         case symbolMultiplierRTL > 0:
-                            const payout = symbolMultiplierRTL * settings.BetPerLines;
+                            const payout = symbolMultiplierRTL * settings.currentBet;
                             totalPayout += payout;
                             settings._winData.winningLines.push(index + 1);
                             winningLines.push({
@@ -425,7 +425,7 @@ function handleFreeSpins(freeSpinCount, gameInstance) {
         settings.freeSpin.freeSpinsAdded = true;
     }
     console.log(freeSpinCount);
-    console.log(settings.freeSpinSymbol.multiplier, "MULTIPLIER");
+    // console.log(settings.freeSpinSymbol.multiplier, "MULTIPLIER");
     switch (true) {
         case freeSpinCount >= 5:
             settings.freeSpin.freeSpinCount += settings.freeSpinSymbol.multiplier[0][1];
@@ -506,7 +506,7 @@ function makeResultJson(gameInstance) {
             }
         };
         gameInstance.sendMessage('ResultData', sendData);
-        // console.log(sendData.GameData.symbolsToEmit, "send Data");
+        // console.log(sendData, "send Data");
     }
     catch (error) {
         console.error("Error generating result JSON or sending message:", error);

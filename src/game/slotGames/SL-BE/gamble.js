@@ -11,10 +11,10 @@ exports.getRandomFlip = getRandomFlip;
  *
  * */
 function sendInitGambleData() {
-    console.log("gamble init");
+    // console.log("gamble init");
 }
 function getGambleResult(response) {
-    console.log("gamble result", response);
+    // console.log("gamble result", response);
     const result = getRandomFlip();
     switch (response.selected === result) {
         case true:

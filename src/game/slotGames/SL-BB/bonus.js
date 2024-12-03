@@ -9,8 +9,8 @@ class RandomBonusGenerator {
         let matrix = [];
         let ccIndices = current.settings.cashCollect.values.map(cc => `${cc.index[0]},${cc.index[1]}`);
         let coinIndices = current.settings.coins.bonusValues.map(cc => `${cc.index[0]},${cc.index[1]}`);
-        console.log("ccIndices", ccIndices);
-        console.log("coinIndices", coinIndices);
+        // console.log("ccIndices", ccIndices);
+        // console.log("coinIndices", coinIndices);
         for (let x = 0; x < current.settings.currentGamedata.matrix.x; x++) {
             const startPosition = this.getRandomIndex((current.settings.bonusReels[x].length - 1));
             for (let y = 0; y < current.settings.currentGamedata.matrix.y; y++) {
@@ -32,8 +32,8 @@ class RandomBonusGenerator {
         // matrix.push(['10', '6', '10', '0', '4','6'])
         // matrix.push(['1', '11', '14', '10', '1','6'])
         // matrix.push(['5', '8', '1', '5', '1','6'])
-        console.log("bonus matrix");
-        matrix.forEach(row => console.log(row.join(' ')));
+        // console.log("bonus matrix");
+        // matrix.forEach(row => console.log(row.join(' ')));
         // current.settings.resultReelIndex = matrix;
         current.settings.bonusResultMatrix = matrix;
     }
@@ -124,7 +124,7 @@ function handleBonusSpin(gameInstance) {
     (0, helper_1.getCoinsValues)(gameInstance, coinType === "mega" ? "mega" : "bonus");
     if (isWalterStash) {
         settings.bonus.isWalterStash = true;
-        settings.bonus.payout += settings.jackpot.payout[settings.jackpot.payout.length - 1] * settings.BetPerLines;
+        settings.bonus.payout += settings.jackpot.payout[0] * settings.BetPerLines;
         settings.bonus.count = 0;
     }
     if (settings.bonus.count == 0) {

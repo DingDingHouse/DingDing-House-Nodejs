@@ -41,6 +41,8 @@ function initializeGameSettings(gameData, gameInstance) {
             freeSpinCount: 0,
             noOfFreeSpins: 0,
             useFreeSpin: false,
+            jokerSymbols: [],
+            trumpSymbols: []
         },
         wild: {
             SymbolName: "",
@@ -294,8 +296,8 @@ function checkForFreeSpin(gameInstance) {
             settings.freeSpin.freeSpinCount += freeSpins;
             playerData.totalSpin += freeSpins;
             // uncomment only for testing purpose 
-            playerData.rtpSpinCount += freeSpins;
-            settings._winData.winningSymbols.push(freeSpinsSymbol);
+            // playerData.rtpSpinCount += freeSpins;
+            settings.freeSpin.jokerSymbols.push(freeSpinsSymbol);
             return;
         }
     }
@@ -313,7 +315,7 @@ function checkForTrumpFreeSpin(gameInstance) {
             settings.freeSpin.freeSpinStarted = true;
             settings.freeSpin.freeSpinsAdded = true;
             settings.freeSpin.freeSpinCount += TrumpFreeSpinSymbol.length;
-            settings._winData.winningSymbols.push(TrumpFreeSpinSymbol);
+            settings.freeSpin.trumpSymbols.push(TrumpFreeSpinSymbol);
             return;
         }
     }
@@ -357,7 +359,9 @@ function makeResultJson(gameInstance) {
                 symbolsToEmit: settings._winData.winningSymbols,
                 freeSpins: {
                     count: settings.freeSpin.freeSpinCount,
-                    isNewAdded: settings.freeSpin.freeSpinsAdded
+                    isNewAdded: settings.freeSpin.freeSpinsAdded,
+                    jokerSymbols: settings.freeSpin.jokerSymbols,
+                    trumpSymbols: settings.freeSpin.trumpSymbols
                 },
             },
             PlayerData: {

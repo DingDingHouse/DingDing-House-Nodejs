@@ -12,7 +12,7 @@ class KenoBaseGame {
         }
     }
     initialize(data) {
-        console.log("CHANED PARSHEET IN KENO ");
+        console.log("INITIALIZED PARSHEET IN KENO ");
     }
     sendMessage(action, message) {
         this.currentGameData.sendMessage(action, message, true);

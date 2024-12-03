@@ -106,6 +106,8 @@ class SLPSF {
                 this.settings.resultSymbolMatrix = [];
                 this.settings._winData.winningLines = [];
                 this.settings._winData.winningSymbols = [];
+                this.settings.freeSpin.jokerSymbols = [];
+                this.settings.freeSpin.trumpSymbols = [];
             }
             catch (error) {
                 this.sendError("Spin error");

@@ -128,7 +128,7 @@ function makeResultJson(gameInstance) {
                 haveWon: playerData.haveWon,
             }
         };
-        console.log("Sending result JSON:", sendData);
+        // console.log("Sending result JSON:", sendData);
         gameInstance.sendMessage('ResultData', sendData);
     }
     catch (error) {
@@ -290,7 +290,7 @@ function checkWin(gameInstance) {
         });
     }
     const bool = checkForFreespin(gameInstance);
-    console.log("isFreespin", bool);
+    // console.log("isFreespin", bool);
     //reset multiplers for freespin when its over 
     if (settings.freeSpinCount <= 0 && settings.isFreeSpin === false) {
         settings.freeSpinMultipliers = [1, 1, 1, 1, 1];
