@@ -88,5 +88,33 @@ class UserService {
         }
         return arr.join("");
     }
+    getAllSubordinateIds(userId, role) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let allSubordinateIds = [];
+            if (role === "store") {
+                // Fetch subordinates from the Player collection
+                const directSubordinates = yield userModel_1.Player.find({ createdBy: userId }, { _id: 1 });
+                const directSubordinateIds = directSubordinates.map(sub => sub._id);
+                allSubordinateIds = [...directSubordinateIds];
+            }
+            else {
+                // Fetch subordinates from the User collection
+                const directSubordinates = yield userModel_1.User.find({ createdBy: userId }, { _id: 1, role: 1 });
+                const directSubordinateIds = directSubordinates.map(sub => sub._id);
+                allSubordinateIds = [...directSubordinateIds];
+                // If the role is company, also fetch subordinates from the Player collection
+                if (role === "company") {
+                    const directPlayerSubordinates = yield userModel_1.Player.find({ createdBy: userId }, { _id: 1 });
+                    const directPlayerSubordinateIds = directPlayerSubordinates.map(sub => sub._id);
+                    allSubordinateIds = [...allSubordinateIds, ...directPlayerSubordinateIds];
+                }
+                for (const sub of directSubordinates) {
+                    const subSubordinateIds = yield this.getAllSubordinateIds(sub._id, sub.role);
+                    allSubordinateIds = [...allSubordinateIds, ...subSubordinateIds];
+                }
+            }
+            return allSubordinateIds;
+        });
+    }
 }
 exports.default = UserService;

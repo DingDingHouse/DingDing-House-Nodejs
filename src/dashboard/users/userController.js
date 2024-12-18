@@ -23,6 +23,7 @@ const userModel_1 = require("./userModel");
 const userService_1 = __importDefault(require("./userService"));
 const transactionModel_1 = __importDefault(require("../transactions/transactionModel"));
 const sessionManager_1 = require("../session/sessionManager");
+const permissions_1 = require("../../utils/permissions");
 class UserController {
     constructor() {
         this.userService = new userService_1.default();
@@ -40,6 +41,21 @@ class UserController {
             this.getCurrentUserSubordinates.bind(this);
         this.generatePassword = this.generatePassword.bind(this);
         this.logoutUser = this.logoutUser.bind(this);
+    }
+    checkUser(username, role) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let user = null;
+            if (role === "player") {
+                user = yield this.userService.findPlayerByUsername(username);
+            }
+            else {
+                user = yield this.userService.findUserByUsername(username);
+            }
+            if (!user) {
+                return null; // User not found
+            }
+            return user;
+        });
     }
     static getSubordinateRoles(role) {
         return this.rolesHierarchy[role] || [];
@@ -178,7 +194,7 @@ class UserController {
             try {
                 const _req = req;
                 const { user } = req.body;
-                const { username, role } = _req.user; // ADMIN
+                const { username, role } = _req.user;
                 if (!user ||
                     !user.name ||
                     !user.username ||
@@ -187,13 +203,13 @@ class UserController {
                     user.credits === undefined) {
                     throw (0, http_errors_1.default)(400, "All required fields must be provided");
                 }
-                if (role !== "company" && !UserController.isRoleValid(role, user.role)) {
-                    throw (0, http_errors_1.default)(403, `A ${role} cannot create a ${user.role}`);
+                let currentUser = yield this.userService.findUserByUsername(username, session);
+                if (!currentUser) {
+                    throw (0, http_errors_1.default)(404, "Current User not found");
                 }
-                const admin = yield this.userService.findUserByUsername(username, session);
-                if (!admin) {
-                    throw (0, http_errors_1.default)(404, "Admin not found");
-                }
+                // if (!UserController.hasAccess(currentUser, user.role)) {
+                //   throw createHttpError(403, `You cannot create a ${user.role}`);
+                // }
                 let existingUser = (yield this.userService.findPlayerByUsername(user.username, session)) ||
                     (yield this.userService.findUserByUsername(user.username, session));
                 if (existingUser) {
@@ -202,19 +218,19 @@ class UserController {
                 const hashedPassword = yield bcrypt_1.default.hash(user.password, 10);
                 let newUser;
                 if (user.role === "player") {
-                    newUser = yield this.userService.createPlayer(Object.assign(Object.assign({}, user), { createdBy: admin._id }), 0, hashedPassword, session);
+                    newUser = yield this.userService.createPlayer(Object.assign(Object.assign({}, user), { createdBy: currentUser._id }), 0, hashedPassword, session);
                 }
                 else {
-                    newUser = yield this.userService.createUser(Object.assign(Object.assign({}, user), { createdBy: admin._id }), 0, hashedPassword, session);
+                    newUser = yield this.userService.createUser(Object.assign(Object.assign({}, user), { createdBy: currentUser._id }), 0, hashedPassword, session);
                 }
                 if (user.credits > 0) {
-                    const transaction = yield this.userService.createTransaction("recharge", admin, newUser, user.credits, session);
+                    const transaction = yield this.userService.createTransaction("recharge", currentUser, newUser, user.credits, session);
                     newUser.transactions.push(transaction._id);
-                    admin.transactions.push(transaction._id);
+                    currentUser.transactions.push(transaction._id);
                 }
                 yield newUser.save({ session });
-                admin.subordinates.push(newUser._id);
-                yield admin.save({ session });
+                currentUser.subordinates.push(newUser._id);
+                yield currentUser.save({ session });
                 yield session.commitTransaction();
                 res.status(201).json(newUser);
             }
@@ -231,16 +247,9 @@ class UserController {
             try {
                 const _req = req;
                 const { username, role } = _req.user;
-                // throw createHttpError(404, "Access Denied")`
-                let user;
-                if (role === "player") {
-                    user = yield this.userService.findPlayerByUsername(username);
-                }
-                else {
-                    user = yield this.userService.findUserByUsername(username);
-                }
+                let user = yield this.checkUser(username, role);
                 if (!user) {
-                    throw (0, http_errors_1.default)(404, "User not found");
+                    throw (0, http_errors_1.default)(404, `${username} not found`);
                 }
                 res.status(200).json(user);
             }
@@ -252,14 +261,12 @@ class UserController {
     getAllSubordinates(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                console.log("GET ALL SUBORDINATES");
                 const _req = req;
-                const { username: loggedUserName, role: loggedUserRole } = _req.user;
-                const loggedUser = yield this.userService.findUserByUsername(loggedUserName);
-                if (!loggedUser) {
+                const { username: currentUsername, role: currentUserRole } = _req.user;
+                const currentUser = yield this.checkUser(currentUsername, currentUserRole);
+                if (!currentUser) {
                     throw (0, http_errors_1.default)(404, "User not found");
-                }
-                if (loggedUser.role !== "company") {
-                    throw (0, http_errors_1.default)(403, "Access denied. Only users with the role 'company' can access this resource.");
                 }
                 const page = parseInt(req.query.page) || 1;
                 const limit = parseInt(req.query.limit) || 10;
@@ -293,10 +300,10 @@ class UserController {
                     query.username = { $regex: filter, $options: "i" };
                 }
                 if (role) {
-                    query.role = { $ne: "company", $eq: role };
+                    query.role = { $ne: currentUser.role, $eq: role };
                 }
                 else if (!role) {
-                    query.role = { $ne: "company" };
+                    query.role = { $ne: currentUser.role };
                 }
                 if (status) {
                     query.status = status;
@@ -318,6 +325,11 @@ class UserController {
                         $gte: parsedData.credits.From,
                         $lte: parsedData.credits.To,
                     };
+                }
+                // If the user is not an admin, fetch all direct and indirect subordinates
+                if (!(0, permissions_1.isAdmin)(currentUser)) {
+                    const allSubordinateIds = yield this.userService.getAllSubordinateIds(currentUser._id, currentUser.role);
+                    query._id = { $in: allSubordinateIds };
                 }
                 // Aggregation pipeline for User collection
                 const userPipeline = [
@@ -388,13 +400,10 @@ class UserController {
                     activePlayers.add({ username: key, currentGame: value.currentGameData.gameId });
                 });
                 const _req = req;
-                const { username: loggedUserName, role: loggedUserRole } = _req.user;
-                const loggedUser = yield this.userService.findUserByUsername(loggedUserName);
-                if (!loggedUser) {
+                const { username: currentUsername, role: currentUserRole } = _req.user;
+                const currentUser = yield this.checkUser(currentUsername, currentUserRole);
+                if (!currentUser) {
                     throw (0, http_errors_1.default)(404, "User not found");
-                }
-                if (loggedUser.role !== "company") {
-                    throw (0, http_errors_1.default)(403, "Access denied. Only users with the role 'company' can access this resource.");
                 }
                 const page = parseInt(req.query.page) || 1;
                 const limit = parseInt(req.query.limit) || 10;
@@ -453,6 +462,11 @@ class UserController {
                         $lte: parsedData.credits.To,
                     };
                 }
+                // If the user is not an admin, fetch all direct and indirect players
+                if (!(0, permissions_1.isAdmin)(currentUser)) {
+                    const allPlayerSubordinateIds = yield (0, utils_1.getAllPlayerSubordinateIds)(currentUser._id, currentUser.role);
+                    query.createdBy = { $in: allPlayerSubordinateIds };
+                }
                 const playerCount = yield userModel_1.Player.countDocuments(query);
                 const totalPages = Math.ceil(playerCount / limit);
                 if (playerCount === 0) {
@@ -496,7 +510,7 @@ class UserController {
                 const _req = req;
                 const { username, role } = _req.user;
                 const { id } = req.query;
-                const currentUser = yield userModel_1.User.findOne({ username });
+                const currentUser = yield this.checkUser(username, role);
                 if (!currentUser) {
                     throw (0, http_errors_1.default)(401, "User not found");
                 }
@@ -506,12 +520,9 @@ class UserController {
                 const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending
                 let userToCheck = currentUser;
                 if (id) {
-                    userToCheck = yield userModel_1.User.findById(id);
+                    userToCheck = (yield userModel_1.User.findById(id)) || (yield userModel_1.Player.findById(id));
                     if (!userToCheck) {
-                        userToCheck = yield userModel_1.Player.findById(id);
-                        if (!userToCheck) {
-                            return res.status(404).json({ message: "User not found" });
-                        }
+                        return res.status(404).json({ message: "User not found" });
                     }
                 }
                 let filterRole, status, redeem, recharge, credits;
@@ -543,10 +554,10 @@ class UserController {
                     query.username = { $regex: filter, $options: "i" };
                 }
                 if (filterRole) {
-                    query.role = { $ne: "company", $eq: filterRole };
+                    query.role = { $ne: currentUser.role, $eq: filterRole };
                 }
                 else if (!filterRole) {
-                    query.role = { $ne: "company" };
+                    query.role = { $ne: currentUser.role };
                 }
                 if (status) {
                     query.status = status;
@@ -639,29 +650,23 @@ class UserController {
                     throw (0, http_errors_1.default)(400, "Client Id is required");
                 }
                 const clientObjectId = new mongoose_1.default.Types.ObjectId(clientId);
-                const admin = yield this.userService.findUserByUsername(username);
+                let admin = yield this.userService.findUserByUsername(username);
                 if (!admin) {
-                    throw (0, http_errors_1.default)(404, "Admin Not Found");
+                    throw (0, http_errors_1.default)(404, "User Not Found");
                 }
                 const client = (yield this.userService.findUserById(clientObjectId)) ||
                     (yield this.userService.findPlayerById(clientObjectId));
                 if (!client) {
                     throw (0, http_errors_1.default)(404, "User not found");
                 }
-                if (role != "company" &&
-                    !admin.subordinates.some((id) => id.equals(clientObjectId))) {
-                    throw (0, http_errors_1.default)(403, "Client does not belong to the creator");
-                }
-                const clientRole = client.role;
-                if (!UserController.rolesHierarchy[role] ||
-                    !UserController.rolesHierarchy[role].includes(clientRole)) {
-                    throw (0, http_errors_1.default)(403, `A ${role} cannot delete a ${clientRole}`);
+                if (!(0, permissions_1.hasPermission)(admin, `${client.role}s`, 'x')) {
+                    throw (0, http_errors_1.default)(403, `Access denied. You don't have permission to delete ${client.username}.`);
                 }
                 if (client instanceof userModel_1.User) {
                     yield this.userService.deleteUserById(clientObjectId);
                 }
                 else if (client instanceof userModel_1.Player) {
-                    yield yield this.userService.deletePlayerById(clientObjectId);
+                    yield this.userService.deletePlayerById(clientObjectId);
                 }
                 admin.subordinates = admin.subordinates.filter((id) => !id.equals(clientObjectId));
                 yield admin.save();
@@ -683,22 +688,17 @@ class UserController {
                     throw (0, http_errors_1.default)(400, "Client Id is required");
                 }
                 const clientObjectId = new mongoose_1.default.Types.ObjectId(clientId);
-                let admin;
-                admin = yield this.userService.findUserByUsername(username);
+                let admin = (yield this.userService.findUserByUsername(username)) || (yield this.userService.findPlayerByUsername(username));
                 if (!admin) {
-                    admin = yield this.userService.findPlayerByUsername(username);
-                    if (!admin) {
-                        throw (0, http_errors_1.default)(404, "Creator not found");
-                    }
+                    throw (0, http_errors_1.default)(404, "User not found");
                 }
-                const client = (yield this.userService.findUserById(clientObjectId)) ||
-                    (yield this.userService.findPlayerById(clientObjectId));
+                const client = (yield this.userService.findUserById(clientObjectId)) || (yield this.userService.findPlayerById(clientObjectId));
                 if (!client) {
                     throw (0, http_errors_1.default)(404, "Client not found");
                 }
-                // if (role != "company" && !admin.subordinates.some((id) => id.equals(clientObjectId))) {
-                //   throw createHttpError(403, "Client does not belong to the creator");
-                // }
+                if (!(0, permissions_1.hasPermission)(admin, `${client.role}s`, "w")) {
+                    throw (0, http_errors_1.default)(403, "Access denied. You don't have permission to update users.");
+                }
                 if (status) {
                     (0, utils_1.updateStatus)(client, status);
                 }
@@ -728,19 +728,16 @@ class UserController {
                 const subordinateObjectId = new mongoose_1.default.Types.ObjectId(subordinateId);
                 const loggedUser = yield this.userService.findUserByUsername(loggedUserName);
                 let user;
-                user = yield this.userService.findUserById(subordinateObjectId);
+                user = (yield this.userService.findUserById(subordinateObjectId)) || (yield this.userService.findPlayerById(subordinateObjectId));
                 if (!user) {
-                    user = yield this.userService.findPlayerById(subordinateObjectId);
-                    if (!user) {
-                        throw (0, http_errors_1.default)(404, "User not found");
-                    }
+                    throw (0, http_errors_1.default)(404, "User not found");
                 }
-                if (loggedUserRole === "company" ||
+                if (loggedUserRole === "admin" ||
                     loggedUser.subordinates.includes(subordinateObjectId) ||
                     user._id.toString() == loggedUser._id.toString()) {
                     let client;
                     switch (user.role) {
-                        case "company":
+                        case "admin":
                             client = yield userModel_1.User.findById(subordinateId).populate({
                                 path: "transactions",
                                 model: transactionModel_1.default,
@@ -789,19 +786,9 @@ class UserController {
                 const { username, role } = _req.user;
                 const { type, userId } = req.query;
                 const { start, end } = UserController.getStartAndEndOfPeriod(type);
-                const allowedAdmins = [
-                    "company",
-                    "master",
-                    "distributor",
-                    "subdistributor",
-                    "store",
-                ];
                 const currentUser = yield userModel_1.User.findOne({ username });
                 if (!currentUser) {
                     throw (0, http_errors_1.default)(401, "User not found");
-                }
-                if (!allowedAdmins.includes(currentUser.role)) {
-                    throw (0, http_errors_1.default)(400, "Access denied : Invalid User ");
                 }
                 let targetUser = currentUser;
                 if (userId) {
@@ -814,7 +801,7 @@ class UserController {
                     }
                     targetUser = subordinate;
                 }
-                if (targetUser.role === "company") {
+                if (targetUser.role === "admin") {
                     // Total Recharge Amount
                     const totalRechargedAmt = yield transactionModel_1.default.aggregate([
                         {
@@ -904,6 +891,7 @@ class UserController {
                         .limit(9);
                     return res.status(200).json({
                         username: targetUser.username,
+                        credits: targetUser.credits,
                         role: targetUser.role,
                         recharge: ((_a = totalRechargedAmt[0]) === null || _a === void 0 ? void 0 : _a.totalAmount) || 0,
                         redeem: ((_b = totalRedeemedAmt[0]) === null || _b === void 0 ? void 0 : _b.totalAmount) || 0,
@@ -912,110 +900,109 @@ class UserController {
                     });
                 }
                 else {
-                    const userRechargeAmt = yield transactionModel_1.default.aggregate([
-                        {
-                            $match: {
-                                $and: [
-                                    {
-                                        type: "recharge",
-                                    },
-                                    {
-                                        debtor: targetUser.username,
-                                    },
-                                ],
-                            },
-                        },
-                        {
-                            $group: {
-                                _id: null,
-                                totalAmount: {
-                                    $sum: "$amount",
-                                },
-                            },
-                        },
-                    ]);
-                    const userRedeemAmt = yield transactionModel_1.default.aggregate([
-                        {
-                            $match: {
-                                $and: [
-                                    {
-                                        createdAt: {
-                                            $gte: start,
-                                            $lte: end,
-                                        },
-                                    },
-                                    {
-                                        type: "redeem",
-                                    },
-                                    {
-                                        creditor: targetUser.username,
-                                    },
-                                ],
-                            },
-                        },
-                        {
-                            $group: {
-                                _id: null,
-                                totalAmount: {
-                                    $sum: "$amount",
-                                },
-                            },
-                        },
-                    ]);
-                    const userTransactions = yield transactionModel_1.default.find({
-                        $or: [
-                            { debtor: targetUser.username },
-                            { creditor: targetUser.username },
-                        ],
-                        createdAt: { $gte: start, $lte: end },
-                    })
-                        .sort({ createdAt: -1 })
-                        .limit(9);
-                    let users;
-                    if (targetUser.role === "store" || targetUser.role === "player") {
-                        users = yield userModel_1.Player.aggregate([
+                    const [userRechargeAmt, userRedeemAmt, userTransactions, users] = yield Promise.all([
+                        transactionModel_1.default.aggregate([
                             {
                                 $match: {
                                     $and: [
                                         {
-                                            createdBy: targetUser._id,
+                                            createdAt: {
+                                                $gte: start,
+                                                $lte: end,
+                                            },
                                         },
                                         {
-                                            createdAt: { $gte: start, $lte: end },
+                                            type: "recharge",
                                         },
+                                        {
+                                            debtor: targetUser.username,
+                                        }
                                     ],
                                 },
                             },
                             {
                                 $group: {
-                                    _id: "$status",
-                                    count: { $sum: 1 },
+                                    _id: null,
+                                    totalAmount: { $sum: "$amount" },
                                 },
                             },
-                        ]);
-                    }
-                    else {
-                        users = yield userModel_1.User.aggregate([
+                        ]),
+                        transactionModel_1.default.aggregate([
                             {
                                 $match: {
                                     $and: [
                                         {
-                                            createdBy: targetUser._id,
+                                            createdAt: {
+                                                $gte: start,
+                                                $lte: end,
+                                            },
                                         },
                                         {
-                                            createdAt: { $gte: start, $lte: end },
+                                            type: "redeem",
                                         },
+                                        {
+                                            creditor: targetUser.username,
+                                        }
                                     ],
                                 },
                             },
                             {
                                 $group: {
-                                    _id: "$status",
-                                    count: { $sum: 1 },
+                                    _id: null,
+                                    totalAmount: { $sum: "$amount" },
                                 },
                             },
-                        ]);
-                    }
+                        ]),
+                        transactionModel_1.default.find({
+                            $or: [
+                                { debtor: targetUser.username },
+                                { creditor: targetUser.username },
+                            ],
+                            createdAt: { $gte: start, $lte: end },
+                        })
+                            .sort({ createdAt: -1 }),
+                        (targetUser.role === "store" || targetUser.role === "player") ?
+                            userModel_1.Player.aggregate([
+                                {
+                                    $match: {
+                                        $and: [
+                                            {
+                                                createdBy: targetUser._id,
+                                            },
+                                            {
+                                                createdAt: { $gte: start, $lte: end },
+                                            }
+                                        ],
+                                    },
+                                },
+                                {
+                                    $group: {
+                                        _id: "$status",
+                                        count: { $sum: 1 },
+                                    },
+                                },
+                            ]) :
+                            userModel_1.User.aggregate([
+                                {
+                                    $match: {
+                                        $and: [
+                                            {
+                                                createdBy: targetUser._id,
+                                            },
+                                            {
+                                                createdAt: { $gte: start, $lte: end },
+                                            }
+                                        ],
+                                    },
+                                },
+                                {
+                                    $group: {
+                                        _id: "$status",
+                                        count: { $sum: 1 },
+                                    },
+                                },
+                            ])
+                    ]);
                     const counts = users.reduce((acc, curr) => {
                         if (curr._id === "active") {
                             acc.active += curr.count;
@@ -1025,14 +1012,16 @@ class UserController {
                         }
                         return acc;
                     }, { active: 0, inactive: 0 });
-                    return res.status(200).json({
+                    const result = {
                         username: targetUser.username,
+                        credits: targetUser.credits,
                         role: targetUser.role,
                         recharge: ((_c = userRechargeAmt[0]) === null || _c === void 0 ? void 0 : _c.totalAmount) || 0,
                         redeem: ((_d = userRedeemAmt[0]) === null || _d === void 0 ? void 0 : _d.totalAmount) || 0,
                         users: counts,
                         transactions: userTransactions,
-                    });
+                    };
+                    return res.status(200).json(result);
                 }
             }
             catch (error) {
@@ -1050,45 +1039,34 @@ class UserController {
                 const { start, end } = UserController.getStartAndEndOfPeriod(type);
                 const subordinateObjectId = new mongoose_1.default.Types.ObjectId(subordinateId);
                 // Fetch subordinate details
-                let subordinate = yield userModel_1.User.findById(subordinateObjectId);
+                let subordinate = (yield userModel_1.User.findById(subordinateObjectId)) || (yield userModel_1.Player.findById(subordinateObjectId));
                 if (!subordinate) {
-                    subordinate = yield userModel_1.Player.findById(subordinateObjectId);
-                    if (!subordinate) {
-                        throw (0, http_errors_1.default)(404, "Subordinate not found");
-                    }
+                    throw (0, http_errors_1.default)(404, "Subordinate not found");
                 }
-                // Fetch today's transactions where the subordinate is the creditor
-                const transactionsTodayAsCreditor = yield transactionModel_1.default.find({
-                    creditor: subordinate.username,
-                    createdAt: { $gte: start, $lte: end },
+                // Fetch transactions where the subordinate is either the creditor or the debtor
+                const transactions = yield transactionModel_1.default.find({
+                    $or: [
+                        { creditor: subordinate.username },
+                        { debtor: subordinate.username }
+                    ],
+                    createdAt: { $gte: start, $lte: end }
                 });
-                // Aggregate the total credits given to the subordinate today
-                const totalCreditsGivenToday = transactionsTodayAsCreditor.reduce((sum, t) => sum + t.amount, 0);
-                // Fetch today's transactions where the subordinate is the debtor
-                const transactionsTodayAsDebtor = yield transactionModel_1.default.find({
-                    debtor: subordinate.username,
-                    createdAt: { $gte: start, $lte: end },
-                });
-                // Aggregate the total money spent by the subordinate today
-                const totalMoneySpentToday = transactionsTodayAsDebtor.reduce((sum, t) => sum + t.amount, 0);
-                // Combine both sets of transactions
-                const allTransactions = [
-                    ...transactionsTodayAsCreditor,
-                    ...transactionsTodayAsDebtor,
-                ];
+                // Aggregate the total credits given and money spent today
+                const totalCreditsGivenToday = transactions
+                    .filter(t => t.creditor === subordinate.username)
+                    .reduce((sum, t) => sum + t.amount, 0);
+                const totalMoneySpentToday = transactions
+                    .filter(t => t.debtor === subordinate.username)
+                    .reduce((sum, t) => sum + t.amount, 0);
                 // Fetch users and players created by this subordinate today
-                const usersCreatedToday = yield userModel_1.User.find({
-                    createdBy: subordinate._id,
-                    createdAt: { $gte: start, $lte: end },
-                });
-                const playersCreatedToday = yield userModel_1.Player.find({
-                    createdBy: subordinate._id,
-                    createdAt: { $gte: start, $lte: end },
-                });
+                const [usersCreatedToday, playersCreatedToday] = yield Promise.all([
+                    userModel_1.User.find({ createdBy: subordinate._id, createdAt: { $gte: start, $lte: end } }),
+                    userModel_1.Player.find({ createdBy: subordinate._id, createdAt: { $gte: start, $lte: end } })
+                ]);
                 const report = {
                     creditsGiven: totalCreditsGivenToday,
                     moneySpent: totalMoneySpentToday,
-                    transactions: allTransactions, // All transactions related to the subordinate
+                    transactions,
                     users: usersCreatedToday,
                     players: playersCreatedToday,
                 };
@@ -1103,6 +1081,7 @@ class UserController {
 }
 exports.UserController = UserController;
 UserController.rolesHierarchy = {
+    admin: ["company", "master", "distributor", "subdistributor", "store", "player"],
     company: ["master", "distributor", "subdistributor", "store", "player"],
     master: ["distributor"],
     distributor: ["subdistributor"],

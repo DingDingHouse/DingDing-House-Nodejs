@@ -321,8 +321,16 @@ class BaseSlotGame {
                 new RandomResultGenerator_1.RandomResultGenerator(this);
                 const result = new CheckResult_1.CheckResult(this);
                 result.makeResultJson(gameUtils_1.ResultType.normal);
-                const winAmount = this.playerData.currentWining;
-                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
+                const totalWinAmount = this.settings._winData.totalWinningAmount;
+                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', totalWinAmount);
+                const jackpotAmount = this.settings._winData.specialFeatures.jackpot.amountWon || 0;
+                const scatterAmount = this.settings._winData.specialFeatures.scatter.amountWon || 0;
+                const bonusAmount = this.settings._winData.specialFeatures.bonus.amountWon || 0;
+                platformSession.currentGameSession.updateSpinField(spinId, "specialFeatures", {
+                    jackpot: { amountWon: jackpotAmount },
+                    scatter: { amountWon: scatterAmount },
+                    bonus: { amountWon: bonusAmount },
+                });
             }
             catch (error) {
                 console.error("Failed to generate spin results:", error);

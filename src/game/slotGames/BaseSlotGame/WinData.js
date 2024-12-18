@@ -19,8 +19,19 @@ class WinData {
         this.winningSymbolsFreeSpin = [];
         this.winningLinesFreeSpin = [];
         this.totalWinningAmount = 0;
-        this.jackpotwin = 0;
         this.slotGame = slotGame;
+        this.jackpotwin = 0;
+        this.specialFeatures = {
+            jackpot: {
+                amountWon: 0,
+            },
+            scatter: {
+                amountWon: 0,
+            },
+            bonus: {
+                amountWon: 0,
+            },
+        };
     }
     updateBalance() {
         return __awaiter(this, void 0, void 0, function* () {

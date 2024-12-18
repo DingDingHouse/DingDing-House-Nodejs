@@ -39,17 +39,13 @@ class Manager {
         this.resetSocketData();
         this.socketData = {
             socket: socket,
-            heartbeatInterval: setInterval(() => {
-                // Check if socket is still connected before emitting
+            heartbeatInterval: setInterval(() => __awaiter(this, void 0, void 0, function* () {
                 if (this.socketData.socket) {
-                    const activeUsersData = Array.from(sessionManager_1.sessionManager.getPlatformSessions().values()).map(player => {
-                        const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(player.playerData.username);
-                        return (platformSession === null || platformSession === void 0 ? void 0 : platformSession.getSummary()) || {};
-                    });
-                    this.socketData.socket.emit("activePlayers", activeUsersData);
+                    const activePlayers = yield sessionManager_1.sessionManager.getPlayersSummariesByManager(this.username, this.role);
+                    this.socketData.socket.emit("activePlayers", activePlayers);
                     this.sendData({ type: "CREDITS", payload: { credits: this.credits, role: this.role } });
                 }
-            }, 5000),
+            }), 5000),
             reconnectionAttempts: 0,
             maxReconnectionAttempts: 3,
             reconnectionTimeout: null,

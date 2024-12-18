@@ -19,7 +19,7 @@ const userModel_1 = require("../users/userModel");
 const http_errors_1 = __importDefault(require("http-errors"));
 const checkLoginToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const companyUsers = yield userModel_1.User.find({ role: 'company' });
+        const companyUsers = yield userModel_1.User.find({ role: 'admin' });
         //check if company users exist ,then pass through
         if (companyUsers === null || companyUsers === void 0 ? void 0 : companyUsers.find(user => user.username === req.body.username)) {
             next();
@@ -42,9 +42,12 @@ const checkLoginToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, f
 exports.checkLoginToggle = checkLoginToggle;
 const checkGamesToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const companyUsers = yield userModel_1.User.find({ role: 'company' });
+        const _req = req;
+        const { username } = _req.user;
+        const companyUsers = yield userModel_1.User.find({ role: 'admin' });
         //check if company users exist ,then pass through
-        if (companyUsers === null || companyUsers === void 0 ? void 0 : companyUsers.find(user => user.username === req.body.username)) {
+        if (companyUsers === null || companyUsers === void 0 ? void 0 : companyUsers.find(user => user.username === username)) {
+            console.log("checkGamesToggle : ", companyUsers);
             next();
         }
         else {
@@ -59,6 +62,7 @@ const checkGamesToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, f
         }
     }
     catch (error) {
+        console.log("checkGameToggle : ", error);
         next(error);
     }
 });

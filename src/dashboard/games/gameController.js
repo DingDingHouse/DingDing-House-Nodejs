@@ -108,7 +108,7 @@ class GameController {
                             const others = platformDoc[0].games;
                             return res.status(200).json({ featured, others });
                         }
-                    case "company":
+                    default:
                         const platformDoc = yield gameModel_1.Platform.aggregate([
                             {
                                 $match: category !== "all" ? { name: category } : {},
@@ -125,11 +125,10 @@ class GameController {
                         // Flatten the array of games from multiple platforms if category is "all"
                         const allGames = platformDoc.reduce((acc, platform) => acc.concat(platform.games), []);
                         return res.status(200).json(allGames);
-                    default:
-                        return next((0, http_errors_1.default)(403, "Access denied: You don't have permission to access this resource."));
                 }
             }
             catch (error) {
+                console.error("Error fetching games:", error);
                 next(error);
             }
         });
@@ -142,7 +141,7 @@ class GameController {
                 const { username, role } = _req.user;
                 const { gameId: slug } = req.params;
                 const currentPlayer = yield userModel_1.Player.aggregate([
-                    { $match: { username: username, status: "active" } },
+                    { $match: { username: username, role: role, status: "active" } },
                     { $limit: 1 }
                 ]);
                 if (!currentPlayer[0]) {
@@ -206,11 +205,6 @@ class GameController {
             session.startTransaction();
             let thumbnailUploadResult;
             try {
-                const _req = req;
-                const { role } = _req.user;
-                if (role != "company") {
-                    throw (0, http_errors_1.default)(401, "Access denied: You don't have permission to add games");
-                }
                 const { name, url, type, category, status, tagName, slug, platform: platformName, } = req.body;
                 if (!name ||
                     !url ||
@@ -326,11 +320,6 @@ class GameController {
     addPlatform(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const _req = req;
-                const { role } = _req.user;
-                if (role != "company") {
-                    throw (0, http_errors_1.default)(401, "Access denied: You don't have permission to add games");
-                }
                 const { name } = req.body;
                 if (!name) {
                     throw (0, http_errors_1.default)(400, "Platform name is required");
@@ -353,12 +342,8 @@ class GameController {
     getPlatforms(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const _req = req;
-                const { role } = _req.user;
-                if (role != "company") {
-                    throw (0, http_errors_1.default)(401, "Access denied: You don't have permission to add games");
-                }
                 const platforms = yield gameModel_1.Platform.find().select("name");
+                console.log("platforms", platforms);
                 res.status(200).json(platforms);
             }
             catch (error) {
@@ -375,8 +360,6 @@ class GameController {
             session.startTransaction();
             let thumbnailUploadResult;
             try {
-                const _req = req;
-                const { username, role } = _req.user;
                 const { gameId } = req.params;
                 const _c = req.body, { status, slug, platformName } = _c, updateFields = __rest(_c, ["status", "slug", "platformName"]);
                 if (!gameId) {
@@ -384,9 +367,6 @@ class GameController {
                 }
                 if (!mongoose_1.default.Types.ObjectId.isValid(gameId)) {
                     throw (0, http_errors_1.default)(400, "Invalid Game ID format");
-                }
-                if (role !== "company") {
-                    throw (0, http_errors_1.default)(401, "Access denied: You don't have permission to update games");
                 }
                 const existingGame = yield gameModel_1.Platform.aggregate([
                     { $match: { name: platformName } },
@@ -501,8 +481,6 @@ class GameController {
             const session = yield mongoose_1.default.startSession();
             session.startTransaction();
             try {
-                const _req = req;
-                const { role } = _req.user;
                 const { gameId } = req.params;
                 const { platformName } = req.query;
                 if (!gameId) {
@@ -510,9 +488,6 @@ class GameController {
                 }
                 if (!mongoose_1.default.Types.ObjectId.isValid(gameId)) {
                     throw (0, http_errors_1.default)(400, "Invalid Game ID format");
-                }
-                if (role !== "company") {
-                    throw (0, http_errors_1.default)(401, "Access denied: You don't have permission to delete games");
                 }
                 const platform = yield gameModel_1.Platform.findOne({ name: platformName });
                 if (!platform) {
@@ -562,6 +537,8 @@ class GameController {
     addFavouriteGame(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                const _req = req;
+                const { username } = _req.user;
                 const { playerId } = req.params;
                 const { gameId, type } = req.body;
                 if (!playerId || !gameId) {
@@ -576,6 +553,9 @@ class GameController {
                 const player = yield userModel_1.Player.findById(playerId);
                 if (!player) {
                     throw (0, http_errors_1.default)(404, "Player not found");
+                }
+                if (player.username !== username) {
+                    throw (0, http_errors_1.default)(403, "You are not authorized to perform this action");
                 }
                 let message;
                 let updatedPlayer;

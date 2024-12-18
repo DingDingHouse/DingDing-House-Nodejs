@@ -4,17 +4,17 @@ exports.initializeGameSettings = initializeGameSettings;
 exports.generateInitialReel = generateInitialReel;
 exports.makePayLines = makePayLines;
 exports.sendInitData = sendInitData;
+exports.getRandomValue = getRandomValue;
 exports.checkForWin = checkForWin;
 exports.makeResultJson = makeResultJson;
 const WinData_1 = require("../BaseSlotGame/WinData");
 const gameUtils_1 = require("../../Utils/gameUtils");
 const types_1 = require("./types");
-const RandomResultGenerator_1 = require("../RandomResultGenerator");
 const utils_1 = require("../../../utils/utils");
 /**
  * Initializes the game settings using the provided game data and game instance.
  * @param gameData - The data used to configure the game settings.
- * @param gameInstance - The instance of the SLCM class that manages the game logic.
+ * @param gameInstance - The instance of the SLBOD class that manages the game logic.
  * @returns An object containing initialized game settings.
  */
 function initializeGameSettings(gameData, gameInstance) {
@@ -31,15 +31,21 @@ function initializeGameSettings(gameData, gameInstance) {
         currentLines: 0,
         BetPerLines: 0,
         reels: [],
-        starBurstTriggerMatrix: [],
-        isStarBurst: false,
-        starBurstReel: [],
-        starBurstResponse: [],
+        freeSpinIncrement: gameData.gameSettings.freespinIncrement || 10,
+        wheelProb: gameData.gameSettings.wheelProb,
+        goldSymbolProb: gameData.gameSettings.goldSymbolProb,
+        isFreeSpin: false,
+        freeSpinCount: 0,
+        wheelFeature: {
+            isTriggered: false,
+            wheelType: "NONE",
+            featureType: "NONE"
+        },
         wild: {
             SymbolName: "",
             SymbolID: -1,
             useWild: false,
-        }
+        },
     };
 }
 /**
@@ -72,12 +78,16 @@ function shuffleArray(array) {
         [array[i], array[j]] = [array[j], array[i]];
     }
 }
+/**
+ * Creates special symbols in the game based on the game settings.
+ * @param gameInstance - The instance of the SLBOD class that manages the game logic.
+ */
 function makePayLines(gameInstance) {
     const { settings } = gameInstance;
     settings.currentGamedata.Symbols.forEach((element) => {
-        if (!element.useWildSub) {
-            handleSpecialSymbols(element, gameInstance);
-        }
+        // if (!element.useWildSub) {
+        handleSpecialSymbols(element, gameInstance);
+        // }
     });
 }
 function handleSpecialSymbols(symbol, gameInstance) {
@@ -85,12 +95,19 @@ function handleSpecialSymbols(symbol, gameInstance) {
         case types_1.specialIcons.wild:
             gameInstance.settings.wild.SymbolName = symbol.Name;
             gameInstance.settings.wild.SymbolID = symbol.Id;
-            gameInstance.settings.wild.useWild = true;
+            gameInstance.settings.wild.useWild = false;
             break;
         default:
             break;
     }
 }
+/**
+ * Checks if a line has a winning combination of symbols.
+ * @param firstSymbol - The first symbol in the line.
+ * @param line - The line to be checked.
+ * @param gameInstance - The instance of the SLBOD class that manages the game logic.
+ * @returns An object containing information about the winning line.
+ */
 function checkLineSymbols(firstSymbol, line, gameInstance, direction = 'LTR') {
     try {
         const { settings } = gameInstance;
@@ -170,7 +187,7 @@ function accessData(symbol, matchCount, gameInstance) {
 }
 /**
  * Sends the initial game and player data to the client.
- * @param gameInstance - The instance of the SLCM class containing the game settings and player data.
+ * @param gameInstance - The instance of the SLBOD class containing the game settings and player data.
  */
 function sendInitData(gameInstance) {
     gameInstance.settings.lineData =
@@ -191,64 +208,123 @@ function sendInitData(gameInstance) {
     };
     gameInstance.sendMessage("InitData", dataToSend);
 }
+// Helper function to get N random positions
+function getNRandomPositions(matrix, count) {
+    const emptyPositions = getRandomPositions(matrix);
+    return emptyPositions.slice(0, count);
+}
+function getRandomPositions(matrix) {
+    try {
+        // Get all positions
+        const positions = [];
+        // Collect all positions 
+        for (let row = 0; row < matrix.length; row++) {
+            for (let col = 0; col < matrix[row].length; col++) {
+                positions.push({ row, col });
+            }
+        }
+        // Shuffle the empty positions array using Fisher-Yates algorithm
+        for (let i = positions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [positions[i], positions[j]] = [positions[j], positions[i]];
+        }
+        return positions;
+    }
+    catch (e) {
+        console.log("error in getRandomPositions", e);
+        return []; // Return empty array in case of error
+    }
+}
+const SMALLWHEELPOSITIONS = [
+    [0, 0], [0, 1], [0, 2],
+    [1, 0], [1, 1], [1, 2],
+    [2, 0], [2, 1], [2, 2]
+];
+const MEDIUMWHEELPOSITIONS = [
+    [0, 0], [0, 1],
+    [1, 0], [1, 1],
+    [2, 0], [2, 1]
+];
+const LARGEWHEELPOSITIONS = [
+    [0, 0],
+    [1, 0],
+    [2, 0]
+];
+// function 
+function checkIfCorrectGoldPosition(gameInstance, wheelType) {
+    return true;
+}
+function getRandomValue(gameInstance, type) {
+    const { settings } = gameInstance;
+    let values;
+    let probabilities;
+    if (type === 'wheelType') {
+        values = [0, 1, 2, 3];
+        probabilities = settings.wheelProb;
+    }
+    else if (type === 'index') {
+        values = [3, 4, 5, 6, 7, 8];
+        probabilities = settings.wheelProb.slice(3);
+    }
+    else if (type === 'goldForSmallWheel') {
+        values = Array.from({ length: SMALLWHEELPOSITIONS.length }, (v, i) => i);
+        probabilities = Array.from({ length: SMALLWHEELPOSITIONS.length }, (p) => 1);
+    }
+    else if (type === 'goldForMediumWheel') {
+        values = Array.from({ length: MEDIUMWHEELPOSITIONS.length }, (v, i) => i);
+        probabilities = Array.from({ length: MEDIUMWHEELPOSITIONS.length }, (p) => 1);
+    }
+    else if (type === 'goldForLargeWheel') {
+        values = Array.from({ length: LARGEWHEELPOSITIONS.length }, (v, i) => i);
+        probabilities = Array.from({ length: LARGEWHEELPOSITIONS.length }, (p) => 1);
+        // }  else if (type === 'goldForNoWheel') {
+        //   values = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        //   probabilities = settings.wheelProb
+    }
+    else {
+        throw new Error("Invalid type, expected 'coin' or 'freespin'");
+    }
+    const totalProbability = probabilities.reduce((sum, prob) => sum + prob, 0);
+    const randomValue = Math.random() * totalProbability;
+    let cumulativeProbability = 0;
+    for (let i = 0; i < probabilities.length; i++) {
+        cumulativeProbability += probabilities[i];
+        if (randomValue < cumulativeProbability) {
+            return values[i];
+        }
+    }
+    return values[0];
+}
+//check if wheel of fortune will be triggered
+function checkForWheelOfFortune(gameInstance) {
+    return getRandomValue(gameInstance, 'wheelType');
+}
+//check how many gold symbols will be spawned
+// function checkForGoldSymbols(gameInstance: SLAOG, wheelType: 'No' | 'Small' | 'Medium' | 'Large'): number {
+//   return getRandomValue(gameInstance, `goldFor${wheelType}Wheel`)
+// }
 //CHECK WINS ON PAYLINES WITH OR WITHOUT WILD
 function checkForWin(gameInstance) {
     try {
         const { settings } = gameInstance;
         const winningLines = [];
         let totalPayout = 0;
-        //NOTE: make a temp copy 
-        //
-        settings.starBurstTriggerMatrix = JSON.parse(JSON.stringify(settings.resultSymbolMatrix));
-        //NOTE: if starburst is true check if starBurstReel can be increased
-        if (settings.isStarBurst) {
-            settings.isStarBurst = false;
-            settings.resultSymbolMatrix.forEach((row, rowIndex) => {
-                [1, 2, 3].forEach((columnIndex) => {
-                    if (settings.resultSymbolMatrix[rowIndex][columnIndex] == settings.wild.SymbolID &&
-                        !settings.starBurstReel.includes(columnIndex)) {
-                        settings.isStarBurst = true;
-                        settings.starBurstReel.push(columnIndex);
-                    }
-                });
-            });
-        }
-        else {
-            //NOTE: check for starburst
-            settings.resultSymbolMatrix.forEach((row, rowIndex) => {
-                [1, 2, 3].forEach((columnIndex) => {
-                    if (settings.resultSymbolMatrix[rowIndex][columnIndex] == settings.wild.SymbolID
-                        && !settings.starBurstReel.includes(columnIndex)) {
-                        settings.isStarBurst = true;
-                        settings.starBurstReel.push(columnIndex);
-                    }
-                });
-            });
-        }
-        //NOTE: swap wild in resMatrix
-        //
-        if (settings.starBurstReel.length > 0) {
-            settings.resultSymbolMatrix.forEach((row, rowIndex) => {
-                settings.starBurstReel.forEach((columnIndex) => {
-                    settings.resultSymbolMatrix[rowIndex][columnIndex] = settings.wild.SymbolID;
-                });
-            });
-            // console.info("after swap:");
-            // console.info(settings.resultSymbolMatrix);
+        if (settings.freeSpinCount > 0) {
+            settings.freeSpinCount--;
         }
         settings.lineData.forEach((line, index) => {
             const firstSymbolPositionLTR = line[0];
-            const firstSymbolPositionRTL = line[line.length - 1];
+            // const firstSymbolPositionRTL = line[line.length - 1];
             // Get first symbols for both directions
             let firstSymbolLTR = settings.resultSymbolMatrix[firstSymbolPositionLTR][0];
-            let firstSymbolRTL = settings.resultSymbolMatrix[firstSymbolPositionRTL][line.length - 1];
+            // let firstSymbolRTL = settings.resultSymbolMatrix[firstSymbolPositionRTL][line.length - 1];
             // Handle wild symbols for both directions
             if (firstSymbolLTR === settings.wild.SymbolID) {
                 firstSymbolLTR = findFirstNonWildSymbol(line, gameInstance);
             }
-            if (firstSymbolRTL === settings.wild.SymbolID) {
-                firstSymbolRTL = findFirstNonWildSymbol(line, gameInstance, 'RTL');
-            }
+            // if (firstSymbolRTL === settings.wild.SymbolID) {
+            //   firstSymbolRTL = findFirstNonWildSymbol(line, gameInstance, 'RTL');
+            // }
             // Left-to-right check
             const LTRResult = checkLineSymbols(firstSymbolLTR, line, gameInstance, 'LTR');
             if (LTRResult.isWinningLine && LTRResult.matchCount >= 3) {
@@ -256,7 +332,6 @@ function checkForWin(gameInstance) {
                 if (symbolMultiplierLTR > 0) {
                     const payout = symbolMultiplierLTR * gameInstance.settings.BetPerLines;
                     totalPayout += payout;
-                    gameInstance.playerData.currentWining += payout;
                     settings._winData.winningLines.push(index + 1);
                     winningLines.push({
                         line,
@@ -268,100 +343,20 @@ function checkForWin(gameInstance) {
                     const formattedIndices = LTRResult.matchedIndices.map(({ col, row }) => `${col},${row}`);
                     const validIndices = formattedIndices.filter((index) => index.length > 2);
                     if (validIndices.length > 0) {
-                        // console.log(validIndices);
                         settings._winData.winningSymbols.push(validIndices);
-                        settings._winData.totalWinningAmount = totalPayout * settings.BetPerLines;
-                        // console.log(settings._winData.totalWinningAmount)
+                        settings._winData.totalWinningAmount = (0, utils_1.precisionRound)((totalPayout * settings.BetPerLines), 4);
                     }
-                    // console.log(`Line ${index + 1} (LTR):`, line);
-                    // console.log(`Payout for LTR Line ${index + 1}:`, "payout", payout);
                     return;
                 }
             }
-            // Right-to-left check
-            const RTLResult = checkLineSymbols(firstSymbolRTL, line, gameInstance, 'RTL');
-            if (RTLResult.isWinningLine && RTLResult.matchCount >= 3) {
-                const symbolMultiplierRTL = accessData(firstSymbolRTL, RTLResult.matchCount, gameInstance);
-                if (symbolMultiplierRTL > 0) {
-                    const payout = symbolMultiplierRTL * gameInstance.settings.BetPerLines;
-                    totalPayout += payout;
-                    gameInstance.playerData.currentWining += payout;
-                    settings._winData.winningLines.push(index + 1);
-                    winningLines.push({
-                        line,
-                        symbol: firstSymbolRTL,
-                        multiplier: symbolMultiplierRTL,
-                        matchCount: RTLResult.matchCount,
-                        direction: 'RTL'
-                    });
-                    const formattedIndices = RTLResult.matchedIndices.map(({ col, row }) => `${col},${row}`);
-                    const validIndices = formattedIndices.filter((index) => index.length > 2);
-                    if (validIndices.length > 0) {
-                        // console.log(validIndices);
-                        settings._winData.winningSymbols.push(validIndices);
-                        settings._winData.totalWinningAmount = totalPayout * settings.BetPerLines;
-                        // console.log(settings._winData.totalWinningAmount)
-                    }
-                    // console.log(`Line ${index + 1} (RTL):`, line);
-                    // console.log(`Payout for RTL Line ${index + 1}:`, "payout", payout);
-                }
-            }
         });
-        //NOTE: not starburst
-        if (!settings.isStarBurst && settings.starBurstReel.length === 0) {
-            gameInstance.playerData.currentWining = (0, utils_1.precisionRound)(totalPayout, 5);
-            gameInstance.playerData.haveWon = (0, utils_1.precisionRound)((gameInstance.playerData.haveWon + totalPayout), 5);
-            gameInstance.updatePlayerBalance(gameInstance.playerData.currentWining);
-            makeResultJson(gameInstance);
-            settings.starBurstReel = [];
-            settings.isStarBurst = false;
-            settings.starBurstResponse = [];
-            //NOTE: starburst last spin
-        }
-        else if (!settings.isStarBurst && settings.starBurstReel.length > 0) {
-            //swapback
-            settings.resultSymbolMatrix = settings.starBurstTriggerMatrix;
-            settings.starBurstResponse.push({
-                resultMatrix: settings.resultSymbolMatrix,
-                symbolsToEmit: settings._winData.winningSymbols,
-                linesToEmit: settings._winData.winningLines,
-                payout: totalPayout
-            });
-            let starBurstPayout = 0;
-            settings.starBurstResponse.forEach((response) => {
-                starBurstPayout += response.payout;
-            });
-            gameInstance.playerData.currentWining = (0, utils_1.precisionRound)((starBurstPayout), 5);
-            gameInstance.playerData.haveWon = (0, utils_1.precisionRound)((gameInstance.playerData.haveWon + gameInstance.playerData.currentWining), 5);
-            gameInstance.updatePlayerBalance(gameInstance.playerData.currentWining);
-            //FIX:  clearing redundant data .remove it later maybe 
-            settings.resultSymbolMatrix = settings.starBurstTriggerMatrix;
-            settings._winData.winningLines = [];
-            settings._winData.winningSymbols = [];
-            makeResultJson(gameInstance);
-            settings.starBurstReel = [];
-            settings.isStarBurst = false;
-            settings.starBurstResponse = [];
-            //NOTE: starburst spins
-        }
-        else {
-            //swapback
-            settings.resultSymbolMatrix = settings.starBurstTriggerMatrix;
-            settings.starBurstResponse.push({
-                resultMatrix: settings.resultSymbolMatrix,
-                symbolsToEmit: settings._winData.winningSymbols,
-                linesToEmit: settings._winData.winningLines,
-                payout: totalPayout
-            });
-            settings._winData.winningLines = [];
-            settings._winData.winningSymbols = [];
-            //NOTE: run checkwin again since it is a freespin
-            new RandomResultGenerator_1.RandomResultGenerator(gameInstance);
-            checkForWin(gameInstance);
-        }
+        gameInstance.playerData.currentWining = (0, utils_1.precisionRound)(totalPayout, 5);
+        gameInstance.playerData.haveWon = (0, utils_1.precisionRound)(gameInstance.playerData.haveWon +
+            gameInstance.playerData.currentWining, 5);
+        makeResultJson(gameInstance);
+        settings.isFreeSpin = false;
         settings._winData.winningLines = [];
         settings._winData.winningSymbols = [];
-        settings.starBurstTriggerMatrix = [];
         return winningLines;
     }
     catch (error) {
@@ -369,20 +364,19 @@ function checkForWin(gameInstance) {
         return [];
     }
 }
-//MAKERESULT JSON FOR FRONTEND 
+//MAKERESULT JSON FOR FRONTENT SIDE
 function makeResultJson(gameInstance) {
     try {
         const { settings, playerData } = gameInstance;
         const credits = gameInstance.getPlayerData().credits;
-        const Balance = credits.toFixed(4);
+        const Balance = credits.toFixed(2);
         const sendData = {
             GameData: {
                 resultSymbols: settings.resultSymbolMatrix,
                 linesToEmit: settings._winData.winningLines,
                 symbolsToEmit: settings._winData.winningSymbols,
-                isStarBurst: settings.starBurstReel.length > 0,
-                starBurstReel: settings.starBurstReel,
-                starBurstResponse: settings.starBurstResponse
+                isFreeSpin: settings.isFreeSpin,
+                freeSpinCount: settings.freeSpinCount,
             },
             PlayerData: {
                 Balance: Balance,

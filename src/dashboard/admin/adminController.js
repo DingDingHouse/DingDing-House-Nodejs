@@ -12,14 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CompanyController = void 0;
+exports.AdminController = void 0;
 const http_errors_1 = __importDefault(require("http-errors"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const mongoose_1 = __importDefault(require("mongoose"));
-const userModel_1 = require("../users/userModel");
 const otpUtils_1 = require("./otpUtils");
 const config_1 = require("../../config/config");
-class CompanyController {
+const userModel_1 = require("../users/userModel");
+class AdminController {
     constructor() {
         this.requestOTP = this.requestOTP.bind(this.requestOTP);
         this.verifyOTPAndCreateUser = this.verifyOTPAndCreateUser.bind(this.verifyOTPAndCreateUser);
@@ -34,8 +34,7 @@ class CompanyController {
             const email = config_1.config.sentToemail;
             const otp = (0, otpUtils_1.generateOTP)();
             // Store OTP with an expiration time
-            CompanyController.otpStore.set(email, { otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
-            console.log(CompanyController.otpStore);
+            AdminController.otpStore.set(email, { otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
             try {
                 console.time('sendOTP');
                 yield (0, otpUtils_1.sendOTP)(email, otp);
@@ -53,7 +52,7 @@ class CompanyController {
         return __awaiter(this, void 0, void 0, function* () {
             const { otp, user } = req.body;
             const receiverEmail = config_1.config.sentToemail;
-            const storedOTP = CompanyController.otpStore.get(receiverEmail);
+            const storedOTP = AdminController.otpStore.get(receiverEmail);
             if (!otp || !user) {
                 return next((0, http_errors_1.default)(400, 'OTP and user details are required'));
             }
@@ -64,21 +63,19 @@ class CompanyController {
                 return next((0, http_errors_1.default)(400, 'Invalid OTP'));
             }
             // Clear OTP after successful verification
-            CompanyController.otpStore.delete(receiverEmail);
+            AdminController.otpStore.delete(receiverEmail);
             const session = yield mongoose_1.default.startSession();
             session.startTransaction();
             try {
                 if (!user.name || !user.username || !user.password) {
                     throw (0, http_errors_1.default)(400, "All required fields must be provided");
                 }
-                const existingUser = yield userModel_1.User.findOne({ username: user.username }).session(session);
-                const existingPlayer = yield userModel_1.Player.findOne({ username: user.username }).session(session);
-                if (existingUser || existingPlayer) {
-                    throw (0, http_errors_1.default)(409, 'User already exists');
+                const existingAdmin = yield userModel_1.User.findOne({ username: user.username }).session(session);
+                if (existingAdmin) {
+                    throw (0, http_errors_1.default)(409, 'Admin already exists');
                 }
-                const createdById = new mongoose_1.default.Types.ObjectId();
                 const hashedPassword = yield bcrypt_1.default.hash(user.password, 10);
-                const newUser = new userModel_1.User(Object.assign(Object.assign({}, user), { role: 'company', credits: Infinity, createdBy: createdById, password: hashedPassword }));
+                const newUser = new userModel_1.User(Object.assign(Object.assign({}, user), { credits: Infinity, createdBy: null, password: hashedPassword }));
                 yield newUser.save({ session });
                 yield session.commitTransaction();
                 res.status(201).json(newUser);
@@ -94,5 +91,5 @@ class CompanyController {
         });
     }
 }
-exports.CompanyController = CompanyController;
-CompanyController.otpStore = new Map();
+exports.AdminController = AdminController;
+AdminController.otpStore = new Map();

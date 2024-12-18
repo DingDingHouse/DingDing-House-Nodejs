@@ -135,6 +135,14 @@ class SLBE {
                 // this.gamebleTesting()
                 const winAmount = this.playerData.currentWining;
                 platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
+                const jackpotAmount = this.settings._winData.specialFeatures.jackpot.amountWon || 0;
+                const scatterAmount = this.settings._winData.specialFeatures.scatter.amountWon || 0;
+                const bonusAmount = this.settings._winData.specialFeatures.bonus.amountWon || 0;
+                platformSession.currentGameSession.updateSpinField(spinId, "specialFeatures", {
+                    jackpot: { amountWon: jackpotAmount },
+                    scatter: { amountWon: scatterAmount },
+                    bonus: { amountWon: bonusAmount },
+                });
             }
             catch (error) {
                 this.sendError("Spin error");

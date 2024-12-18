@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const userController_1 = require("./userController");
 const checkUser_1 = require("../middleware/checkUser");
 const checkToggle_1 = require("../middleware/checkToggle");
+const checkRole_1 = require("../middleware/checkRole");
 const userController = new userController_1.UserController();
 const userRoutes = express_1.default.Router();
 // LOGIN
@@ -19,9 +20,9 @@ userRoutes.get("/generatePassword", checkUser_1.checkUser, userController.genera
 // // GET all details about the current user
 userRoutes.get("/", checkUser_1.checkUser, userController.getCurrentUser);
 // // GET all subordinates
-userRoutes.get("/all", checkUser_1.checkUser, userController.getAllSubordinates);
+userRoutes.get("/all", checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin", "company"]), userController.getAllSubordinates);
 // // GET all Players
-userRoutes.get('/allPlayer', checkUser_1.checkUser, userController.getAllPlayers);
+userRoutes.get('/allPlayer', checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin", "company"]), userController.getAllPlayers);
 // GET Current User subordinate
 userRoutes.get("/subordinates", checkUser_1.checkUser, userController.getCurrentUserSubordinates);
 // GET Report

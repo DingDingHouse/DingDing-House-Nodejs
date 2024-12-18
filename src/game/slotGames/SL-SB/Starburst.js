@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SLSB = void 0;
 const sessionManager_1 = require("../../../dashboard/session/sessionManager");
+const utils_1 = require("../../../utils/utils");
 const RandomResultGenerator_1 = require("../RandomResultGenerator");
 const helper_1 = require("./helper");
 class SLSB {
@@ -25,9 +26,11 @@ class SLSB {
             currentPayout: 0,
         };
         this.settings = (0, helper_1.initializeGameSettings)(currentGameData, this);
+        console.log("Initialized game settings SL-SB");
         (0, helper_1.generateInitialReel)(this.settings);
         (0, helper_1.sendInitData)(this);
         (0, helper_1.makePayLines)(this);
+        console.log("balance", this.getPlayerData().credits);
     }
     get initSymbols() {
         const Symbols = [];
@@ -77,10 +80,11 @@ class SLSB {
                     return;
                 }
                 const { currentBet } = this.settings;
-                yield this.deductPlayerBalance(currentBet);
+                this.deductPlayerBalance(currentBet);
+                this.playerData.totalbet = (0, utils_1.precisionRound)((this.playerData.totalbet + currentBet), 5);
                 const spinId = platformSession.currentGameSession.createSpin();
                 platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
-                yield new RandomResultGenerator_1.RandomResultGenerator(this);
+                new RandomResultGenerator_1.RandomResultGenerator(this);
                 (0, helper_1.checkForWin)(this);
                 const winAmount = this.playerData.currentWining;
                 platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);

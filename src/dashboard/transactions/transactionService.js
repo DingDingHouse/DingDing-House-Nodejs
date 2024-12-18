@@ -13,22 +13,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionService = void 0;
-const utils_1 = require("../../utils/utils");
 const http_errors_1 = __importDefault(require("http-errors"));
 const transactionModel_1 = __importDefault(require("./transactionModel"));
 const userModel_1 = require("../users/userModel");
 const sessionManager_1 = require("../session/sessionManager");
+const permissions_1 = require("../../utils/permissions");
 class TransactionService {
     createTransaction(type, manager, client, amount, session) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             // Check if the client is currently in a game via socket connection
             const socketUser = sessionManager_1.sessionManager.getPlayerPlatform(client.username);
             if (socketUser === null || socketUser === void 0 ? void 0 : socketUser.gameData.socket) {
                 throw (0, http_errors_1.default)(403, "The client must exit their current game session before initiating a transaction.");
             }
-            if (!((_a = utils_1.rolesHierarchy[manager.role]) === null || _a === void 0 ? void 0 : _a.includes(client.role))) {
-                throw (0, http_errors_1.default)(403, `A ${manager.role} is not authorized to perform transactions with a ${client.role}.`);
+            if (!(0, permissions_1.hasPermission)(manager, `${client.role}s`, "w")) {
+                throw (0, http_errors_1.default)(403, "You do not have permission to perform this action.");
             }
             if (type === "recharge") {
                 if (manager.credits < amount) {
@@ -69,8 +68,7 @@ class TransactionService {
     getTransactions(username, page, limit, query, sortField, sortOrder) {
         return __awaiter(this, void 0, void 0, function* () {
             const skip = (page - 1) * limit;
-            const user = (yield userModel_1.User.findOne({ username })) ||
-                (yield userModel_1.Player.findOne({ username }));
+            const user = (yield userModel_1.User.findOne({ username })) || (yield userModel_1.Player.findOne({ username }));
             if (!user) {
                 throw new Error("User not found");
             }

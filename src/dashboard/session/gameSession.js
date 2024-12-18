@@ -32,16 +32,31 @@ class GameSession extends events_1.EventEmitter {
     }
     updateSpinField(spinId, field, value) {
         const spin = this.getSpinById(spinId);
-        if (spin) {
-            spin[field] = value;
-            if (field === "betAmount")
-                this.totalBetAmount += value;
-            if (field === "winAmount")
-                this.totalWinAmount += value;
-            this.emit("spinUpdated", this.getSummary());
-            return true;
+        if (!spin)
+            return false;
+        switch (field) {
+            case "betAmount":
+                if (typeof value === "number") {
+                    spin.betAmount = value;
+                    this.totalBetAmount += value;
+                }
+                break;
+            case "winAmount":
+                if (typeof value === "number") {
+                    spin.winAmount = value;
+                    this.totalWinAmount += value;
+                }
+                break;
+            case "specialFeatures":
+                if (typeof value === "object") {
+                    spin.specialFeatures = Object.assign(Object.assign({}, spin.specialFeatures), value);
+                }
+                break;
+            default:
+                spin[field] = value;
         }
-        return false;
+        this.emit("spinUpdated", this.getSummary());
+        return true;
     }
     endSession(creditsAtExit) {
         this.exitTime = new Date();

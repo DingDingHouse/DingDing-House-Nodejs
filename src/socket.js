@@ -42,12 +42,12 @@ const verifySocketToken = (socket) => {
 };
 const getPlayerDetails = (username) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const player = yield userModel_1.Player.findOne({ username }).populate("createdBy", "name");
+    const player = yield userModel_1.Player.findOne({ username }).populate("createdBy", "username");
     if (player) {
         return {
             credits: player.credits,
             status: player.status,
-            managerName: ((_a = player.createdBy) === null || _a === void 0 ? void 0 : _a.name) || null
+            managerName: ((_a = player.createdBy) === null || _a === void 0 ? void 0 : _a.username) || null
         };
     }
     throw new Error("Player not found");
@@ -146,11 +146,11 @@ const handleManagerConnection = (socket, decoded, userAgent) => __awaiter(void 0
         socket.emit("alert" /* messageType.ALERT */, `Manager ${username} has been connected.`);
     }
     // Send all active players to the manager upon connection
-    const activeUsersData = Array.from(sessionManager_1.sessionManager.getPlatformSessions().values()).map(player => {
-        const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(player.playerData.username);
-        return (platformSession === null || platformSession === void 0 ? void 0 : platformSession.getSummary()) || {};
-    });
-    socket.emit("activePlayers", activeUsersData);
+    // const activeUsersData = Array.from(sessionManager.getPlatformSessions().values()).map(player => {
+    //     const platformSession = sessionManager.getPlayerPlatform(player.playerData.username);
+    //     return platformSession?.getSummary() || {};
+    // });
+    // socket.emit("activePlayers", activeUsersData);
 });
 const socketController = (io) => {
     // Token verification middleware
@@ -175,7 +175,7 @@ const socketController = (io) => {
             if (role === "player") {
                 yield handlePlayerConnection(socket, decoded, userAgent);
             }
-            else if (['company', 'master', 'distributor', 'subdistributor', 'store'].includes(role)) {
+            else if (['admin', 'company', 'master', 'distributor', 'subdistributor', 'store'].includes(role)) {
                 yield handleManagerConnection(socket, decoded, userAgent);
             }
             else {
