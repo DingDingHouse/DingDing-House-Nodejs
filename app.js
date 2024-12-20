@@ -15,13 +15,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const server_1 = __importDefault(require("./src/server"));
 const db_1 = __importDefault(require("./src/config/db"));
 const config_1 = require("./src/config/config");
-const userModel_1 = require("./src/dashboard/users/userModel");
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, db_1.default)();
     server_1.default.listen(config_1.config.port, () => {
         console.log("Listening on port : ", config_1.config.port);
     });
-    const result = yield userModel_1.User.updateMany({ role: "company" }, { role: "supermaster" });
-    console.log("result", result);
 });
 startServer();
