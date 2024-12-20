@@ -8,10 +8,6 @@ const startServer = async () => {
   server.listen(config.port, () => {
     console.log("Listening on port : ", config.port);
   });
-
-  const result = await User.updateMany({ role: "company" }, { role: "supermaster" });
-  console.log("result", result);
-
 };
 
 startServer();
