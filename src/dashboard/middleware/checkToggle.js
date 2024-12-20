@@ -47,7 +47,6 @@ const checkGamesToggle = (req, res, next) => __awaiter(void 0, void 0, void 0, f
         const companyUsers = yield userModel_1.User.find({ role: 'admin' });
         //check if company users exist ,then pass through
         if (companyUsers === null || companyUsers === void 0 ? void 0 : companyUsers.find(user => user.username === username)) {
-            console.log("checkGamesToggle : ", companyUsers);
             next();
         }
         else {

@@ -20,9 +20,9 @@ userRoutes.get("/generatePassword", checkUser_1.checkUser, userController.genera
 // // GET all details about the current user
 userRoutes.get("/", checkUser_1.checkUser, userController.getCurrentUser);
 // // GET all subordinates
-userRoutes.get("/all", checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin", "company"]), userController.getAllSubordinates);
+userRoutes.get("/all", checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin", "supermaster"]), userController.getAllSubordinates);
 // // GET all Players
-userRoutes.get('/allPlayer', checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin", "company"]), userController.getAllPlayers);
+userRoutes.get('/allPlayer', checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin", "supermaster"]), userController.getAllPlayers);
 // GET Current User subordinate
 userRoutes.get("/subordinates", checkUser_1.checkUser, userController.getCurrentUserSubordinates);
 // GET Report

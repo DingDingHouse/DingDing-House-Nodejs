@@ -1081,8 +1081,8 @@ class UserController {
 }
 exports.UserController = UserController;
 UserController.rolesHierarchy = {
-    admin: ["company", "master", "distributor", "subdistributor", "store", "player"],
-    company: ["master", "distributor", "subdistributor", "store", "player"],
+    admin: ["supermaster", "master", "distributor", "subdistributor", "store", "player"],
+    supermaster: ["master", "distributor", "subdistributor", "store", "player"],
     master: ["distributor"],
     distributor: ["subdistributor"],
     subdistributor: ["store"],

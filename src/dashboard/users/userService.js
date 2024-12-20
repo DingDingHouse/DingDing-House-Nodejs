@@ -103,7 +103,7 @@ class UserService {
                 const directSubordinateIds = directSubordinates.map(sub => sub._id);
                 allSubordinateIds = [...directSubordinateIds];
                 // If the role is company, also fetch subordinates from the Player collection
-                if (role === "company") {
+                if (role === "supermaster") {
                     const directPlayerSubordinates = yield userModel_1.Player.find({ createdBy: userId }, { _id: 1 });
                     const directPlayerSubordinateIds = directPlayerSubordinates.map(sub => sub._id);
                     allSubordinateIds = [...allSubordinateIds, ...directPlayerSubordinateIds];

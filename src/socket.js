@@ -175,7 +175,7 @@ const socketController = (io) => {
             if (role === "player") {
                 yield handlePlayerConnection(socket, decoded, userAgent);
             }
-            else if (['admin', 'company', 'master', 'distributor', 'subdistributor', 'store'].includes(role)) {
+            else if (['admin', 'supermaster', 'master', 'distributor', 'subdistributor', 'store'].includes(role)) {
                 yield handleManagerConnection(socket, decoded, userAgent);
             }
             else {

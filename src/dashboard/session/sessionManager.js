@@ -154,13 +154,13 @@ class SessionManager {
             let user = yield userModel_1.User.findOne({ username }).exec();
             if (!user)
                 return null;
-            while (user.createdBy && user.role !== "company") {
+            while (user.createdBy && user.role !== "supermaster") {
                 const parentUser = yield userModel_1.User.findById(user.createdBy).exec();
                 if (!parentUser)
                     break;
                 user = parentUser;
             }
-            return user.role === "company" ? user : null;
+            return user.role === "supermaster" ? user : null;
         });
     }
     getPlayerCurrentGameSession(username) {

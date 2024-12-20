@@ -30,7 +30,11 @@ exports.UserSchema = new mongoose_1.Schema({
     username: { type: String, required: true, unique: true },
     status: { type: String, default: "active" },
     password: { type: String, required: true },
-    role: { type: String, required: true },
+    role: {
+        type: String,
+        required: true,
+        enum: ["admin", "supermaster", "master", "distributor", "subdistributor", "store"]
+    },
     subordinates: [
         { type: mongoose_1.default.Types.ObjectId, refPath: "subordinateModel" },
     ],
@@ -45,7 +49,7 @@ exports.UserSchema = new mongoose_1.Schema({
 exports.UserSchema.virtual("subordinateModel").get(function () {
     const rolesHierarchy = {
         admin: "User",
-        company: "User",
+        supermaster: "User",
         master: "User",
         distributor: "User",
         subdistributor: "User",

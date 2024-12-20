@@ -54,7 +54,8 @@ class TransactionController {
                 const limit = parseInt(req.query.limit) || 10;
                 const search = req.query.search;
                 const filter = req.query.filter || "";
-                const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending order
+                const sortOrder = req.query.sort === "desc" ? -1 : 1;
+                const typeQuery = req.query.type;
                 let parsedData = {
                     role: "",
                     status: "",
@@ -75,33 +76,62 @@ class TransactionController {
                     }
                 }
                 let query = {};
-                if (type) {
-                    query.type = type;
+                if (role !== 'admin' || !typeQuery) {
+                    query.$and = [
+                        {
+                            $or: [{ debtor: username }, { creditor: username }],
+                        },
+                    ];
+                }
+                else {
+                    query.$and = [];
+                }
+                if (typeQuery) {
+                    query.$and.push({ type: typeQuery });
+                }
+                else if (type) {
+                    query.$and.push({ type: type });
                 }
                 if (filter) {
-                    query.$or = [
-                        { creditor: { $regex: filter, $options: "i" } },
-                        { debtor: { $regex: filter, $options: "i" } },
-                    ];
+                    query.$and.push({
+                        $or: [
+                            { creditor: { $regex: filter, $options: "i" } },
+                            { debtor: { $regex: filter, $options: "i" } },
+                        ],
+                    });
                 }
                 if (updatedAt) {
                     const fromDate = new Date(parsedData.updatedAt.From);
                     const toDate = new Date(parsedData.updatedAt.To) || new Date();
                     fromDate.setHours(0, 0, 0, 0);
                     toDate.setHours(23, 59, 59, 999);
-                    query.updatedAt = {
-                        $gte: fromDate,
-                        $lte: toDate,
-                    };
+                    query.$and.push({
+                        updatedAt: {
+                            $gte: fromDate,
+                            $lte: toDate,
+                        },
+                    });
                 }
                 if (amount) {
-                    query.amount = {
-                        $gte: parsedData.amount.From,
-                        $lte: parsedData.amount.To,
-                    };
+                    query.$and.push({
+                        amount: {
+                            $gte: parsedData.amount.From,
+                            $lte: parsedData.amount.To,
+                        },
+                    });
                 }
-                const { transactions, totalTransactions, totalPages, currentPage, outOfRange, } = yield this.transactionService.getTransactions(username, page, limit, query, "createdAt", sortOrder);
-                if (outOfRange) {
+                const totalTransactions = yield transactionModel_1.default.countDocuments(query);
+                const totalPages = Math.ceil(totalTransactions / limit);
+                if (totalTransactions === 0) {
+                    return res.status(200).json({
+                        transactions: [],
+                        totalTransactions: 0,
+                        totalPages: 0,
+                        currentPage: 0,
+                        outOfRange: false,
+                    });
+                }
+                if (page > totalPages && totalPages !== 0) {
                     return res.status(400).json({
                         message: `Page number ${page} is out of range. There are only ${totalPages} pages available.`,
                         totalTransactions,
@@ -110,10 +140,14 @@ class TransactionController {
                         transactions: [],
                     });
                 }
+                const transactions = yield transactionModel_1.default.find(query)
+                    .sort({ createdAt: sortOrder })
+                    .skip((page - 1) * limit)
+                    .limit(limit);
                 res.status(200).json({
                     totalTransactions,
                     totalPages,
-                    currentPage,
+                    currentPage: page,
                     transactions,
                 });
             }
@@ -146,7 +180,7 @@ class TransactionController {
                     throw (0, http_errors_1.default)(404, "User not found");
                 }
                 let query = {};
-                if (user.role === "company" ||
+                if (user.role === "supermaster" ||
                     user.subordinates.includes(new mongoose_1.default.Types.ObjectId(subordinateId))) {
                     const { transactions, totalTransactions, totalPages, currentPage, outOfRange, } = yield this.transactionService.getTransactions(subordinate.username, page, limit, query, "createdAt", sortOrder);
                     if (outOfRange) {
@@ -324,7 +358,7 @@ class TransactionController {
                 const directSubordinateIds = directSubordinates.map(sub => sub._id);
                 allSubordinateIds = [...directSubordinateIds];
                 // If the role is company, also fetch subordinates from the Player collection
-                if (role === "company") {
+                if (role === "supermaster") {
                     const directPlayerSubordinates = yield userModel_1.Player.find({ createdBy: userId }, { _id: 1 });
                     const directPlayerSubordinateIds = directPlayerSubordinates.map(sub => sub._id);
                     allSubordinateIds = [...allSubordinateIds, ...directPlayerSubordinateIds];

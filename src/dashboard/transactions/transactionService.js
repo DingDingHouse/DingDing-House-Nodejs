@@ -101,8 +101,14 @@ class TransactionService {
                 ],
             })
                 .sort({ [sortField]: sortOrder }) // Explicit cast to Record<string, SortOrder>
-                .skip(skip)
+                .skip((page - 1) * limit)
                 .limit(limit);
+            console.log("transactions", {
+                totalTransactions,
+                totalPages,
+                currentPage: page,
+                outOfRange: false,
+            });
             return {
                 transactions,
                 totalTransactions,

@@ -19,7 +19,7 @@ function checkAdmin(req, res, next) {
         const _req = req;
         const { role } = _req.user;
         try {
-            if (role !== "company") {
+            if (role !== "admin") {
                 const error = (0, http_errors_1.default)(403, 'Access Denied: You do not have permission to access this resource.');
                 return next(error);
             }

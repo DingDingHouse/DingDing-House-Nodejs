@@ -14,7 +14,7 @@ const gameController = new gameController_1.GameController();
 const gameRoutes = express_1.default.Router();
 const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB limit
 // GET : Get all Games
-gameRoutes.get("/", middlware_1.validateApiKey, checkUser_1.checkUser, (0, checkRole_1.checkRole)(['admin', 'company', 'player']), checkToggle_1.checkGamesToggle, gameController.getGames);
+gameRoutes.get("/", middlware_1.validateApiKey, checkUser_1.checkUser, (0, checkRole_1.checkRole)(['admin', 'supermaster', 'player']), checkToggle_1.checkGamesToggle, gameController.getGames);
 // POST : Add a Game
 gameRoutes.post('/', upload.fields([{ name: 'thumbnail' }, { name: 'payoutFile' }]), checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin"]), gameController.addGame);
 // GET : Get All Platforms

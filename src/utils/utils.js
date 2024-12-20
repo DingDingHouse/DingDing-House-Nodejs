@@ -42,7 +42,7 @@ function formatDate(isoString) {
     return `${formattedDate} at ${formattedTime}`;
 }
 exports.rolesHierarchy = {
-    company: ["master", "distributor", "subdistributor", "store", "player"],
+    supermaster: ["master", "distributor", "subdistributor", "store", "player"],
     master: ["distributor"],
     distributor: ["subdistributor"],
     subdistributor: ["store"],
@@ -171,7 +171,7 @@ const uploadImage = (image) => {
 exports.uploadImage = uploadImage;
 const getSubordinateModel = (role) => {
     const rolesHierarchy = {
-        company: "User",
+        supermaster: "User",
         master: "User",
         distributor: "User",
         subdistributor: "User",
@@ -223,7 +223,7 @@ function getAllSubordinateIds(userId, role) {
             const directSubordinateIds = directSubordinates.map(sub => sub._id);
             allSubordinateIds = [...directSubordinateIds];
             // If the role is company, also fetch subordinates from the Player collection
-            if (role === "company") {
+            if (role === "supermaster") {
                 const directPlayerSubordinates = yield userModel_1.Player.find({ createdBy: userId }, { _id: 1 });
                 const directPlayerSubordinateIds = directPlayerSubordinates.map(sub => sub._id);
                 allSubordinateIds = [...allSubordinateIds, ...directPlayerSubordinateIds];
@@ -250,7 +250,7 @@ function getAllPlayerSubordinateIds(userId, role) {
             const directSubordinates = yield userModel_1.User.find({ createdBy: userId }, { _id: 1, role: 1 });
             const directSubordinateIds = directSubordinates.map(sub => sub._id);
             // If the role is company, also fetch subordinates from the Player collection
-            if (role === "company") {
+            if (role === "supermaster") {
                 const directPlayerSubordinates = yield userModel_1.Player.find({ createdBy: userId }, { _id: 1 });
                 const directPlayerSubordinateIds = directPlayerSubordinates.map(sub => sub._id);
                 allPlayerSubordinateIds = [...allPlayerSubordinateIds, ...directPlayerSubordinateIds];

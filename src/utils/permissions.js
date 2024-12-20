@@ -5,8 +5,8 @@ exports.hasPermission = hasPermission;
 exports.isAdmin = isAdmin;
 exports.isSubordinate = isSubordinate;
 const rolesHierarchy = {
-    admin: ["company", "master", "distributor", "subdistributor", "store"],
-    company: ["master", "distributor", "subdistributor", "store"],
+    admin: ["supermaster", "master", "distributor", "subdistributor", "store"],
+    supermaster: ["master", "distributor", "subdistributor", "store"],
     master: ["distributor"],
     distributor: ["subdistributor"],
     subdistributor: ["store"],
@@ -16,14 +16,14 @@ exports.rolesHierarchy = rolesHierarchy;
 const permissions = {
     admin: {
         games: ["r", "w", "x"],
-        companys: ["r", "w", "x"],
+        supermasters: ["r", "w", "x"],
         masters: ["r", "w", "x"],
         distributors: ["r", "w", "x"],
         subdistributors: ["r", "w", "x"],
         stores: ["r", "w", "x"],
         players: ["r", "w", "x"],
     },
-    company: {
+    supermaster: {
         masters: ["r", "w", "x"],
         distributors: ["r", "w", "x"],
         subdistributors: ["r", "w", "x"],
