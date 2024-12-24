@@ -15,6 +15,7 @@ import payoutRoutes from "./dashboard/payouts/payoutRoutes";
 import { checkUser } from "./dashboard/middleware/checkUser";
 import toggleRoutes from "./dashboard/Toggle/ToggleRoutes";
 import { checkRole } from "./dashboard/middleware/checkRole";
+import sessionRoutes from "./dashboard/session/sessionRoutes";
 declare module "express-session" {
   interface Session {
     captcha?: string;
@@ -79,6 +80,7 @@ app.use("/api/transactions", transactionRoutes);
 app.use("/api/games", gameRoutes);
 app.use("/api/payouts", checkUser, checkRole(["admin"]), payoutRoutes)
 app.use("/api/toggle", checkUser, checkRole(["admin"]), toggleRoutes);
+app.use("/api/session", sessionRoutes);
 
 const io = new Server(server, {
   cors: {
