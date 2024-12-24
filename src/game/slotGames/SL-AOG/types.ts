@@ -23,14 +23,27 @@ export interface SLAOGSETTINGS {
   bets: number[];
   reels: any[][];
   Symbols: Symbol[];
-  freeSpinIncrement: number
   isFreeSpin: boolean;
   wheelProb:number[];
   goldSymbolProb:number[];
+  goldIndices:[number,number][]
+  smallWheelFeature: {
+    featureValues: number[],
+    featureProbs: number[]
+  },
+  mediumWheelFeature: {
+    featureValues: number[],
+    featureProbs: number[]
+  },
+  largeWheelFeature: {
+    featureValues: number[],
+    featureProbs: number[]
+  },
   wheelFeature:{
     isTriggered:boolean,
     wheelType: WheelType;
     featureType: FeatureType
+    featureValue: number
   },
   freeSpinCount: number;
   wild: {

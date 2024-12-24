@@ -1,12 +1,12 @@
 import { sessionManager } from "../../../dashboard/session/sessionManager";
 import { currentGamedata } from "../../../Player";
-import { precisionRound } from "../../../utils/utils";
 import { RandomResultGenerator } from "../RandomResultGenerator";
+import { generateBonusReel } from "./bonus";
 import { initializeGameSettings, generateInitialReel, sendInitData, makePayLines, checkForWin, makeResultJson } from "./helper";
-import { SLAOGSETTINGS } from "./types";
+import { SLFLCSETTINGS } from "./types";
 
-export class SLAOG {
-  public settings: SLAOGSETTINGS;
+export class SLFLC {
+  public settings: SLFLCSETTINGS;
   playerData = {
     haveWon: 0,
     currentWining: 0,
@@ -19,6 +19,7 @@ export class SLAOG {
   constructor(public currentGameData: currentGamedata) {
     this.settings = initializeGameSettings(currentGameData, this);
     generateInitialReel(this.settings)
+    generateBonusReel(this.settings)
     sendInitData(this)
     makePayLines(this)
   }
@@ -62,9 +63,22 @@ export class SLAOG {
         this.prepareSpin(response.data);
         this.getRTP(response.data.spins || 1);
         break;
+      case "FREESPINOPTION":
+        if (response.data.option) {
+          if (response.data.option >= this.settings.freespin.options.length ||
+            response.data.option < 0 ||
+            isNaN(response.data.option)
+          ) {
+            console.log("Invalid Freespin Option")
+          } else {
+            this.settings.freespin.optionIndex = parseInt(response.data.option);
+          }
+        } else {
+          this.settings.freespin.optionIndex = this.settings.freespin.defaultOptionIndex;
+        }
+        break;
       default:
-        console.warn(`Unhandled message ID: ${response.id}`);
-        this.sendError(`Unhandled message ID: ${response.id}`);
+        console.log("Invalid Message", response.id);
         break;
     }
   }
@@ -84,28 +98,26 @@ export class SLAOG {
         this.sendError("Low Balance");
         return;
       }
-      const { currentBet } = this.settings;
-
-      if (!(this.settings.freeSpinCount > 0)) {
-
+      //FIX: refactor
+      let { currentBet } = this.settings;
+      if (this.settings.freespinCount <= 0) {
+        this.playerData.totalbet += currentBet
         this.deductPlayerBalance(currentBet);
-        this.playerData.totalbet =precisionRound(this.playerData.totalbet + currentBet, 5);
-      }else{
-        this.settings.freeSpinCount --
       }
-
+      if (this.settings.freespinCount >= 0) {
+        this.settings.freespinCount--;
+      }
 
       const spinId = platformSession.currentGameSession.createSpin();
       platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
 
-       new RandomResultGenerator(this);
+      if (this.settings.bonus.spinCount <= 0) {
+        new RandomResultGenerator(this);
+      }
       checkForWin(this)
       const winAmount = this.playerData.currentWining;
       platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
-      //clear json
-      this.settings.resultSymbolMatrix = [];
-      this.settings._winData.winningLines = [];
-      this.settings._winData.winningSymbols = []
+      this.updatePlayerBalance(this.playerData.currentWining)
     } catch (error) {
       this.sendError("Spin error");
       console.error("Failed to generate spin results:", error);

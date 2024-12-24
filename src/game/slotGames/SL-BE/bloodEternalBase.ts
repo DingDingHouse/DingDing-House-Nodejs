@@ -55,7 +55,6 @@ export class SLBE {
     switch (response.id) {
       case "SPIN":
         this.prepareSpin(response.data);
-        this.spinResult();
         this.getRTP(response.data.spins || 1);
         break;
 

@@ -28,13 +28,11 @@ export interface bonusSymbol {
 //     prizeValue?:number;
 //     symbol: number;
 //  } 
-export interface SLSMSETTINGS {
+export interface SLLSSETTINGS {
     id: string;
     matrix: { x: number, y: number };
     currentGamedata: GameData;
     resultSymbolMatrix: any[];
-    tempResultSymbolMatrix:any[];
-    bonusResultMatrix:any[];
     lineData: any[],
     _winData: WinData | undefined;
     currentBet: number;
@@ -43,40 +41,14 @@ export interface SLSMSETTINGS {
     BetPerLines: number;
     bets: number[];
     reels: any[][];
-    bonusReels: any[][];
     Symbols: Symbol[];
-    BonusSymbols: Symbol[];
-    stickyBonusValue:FrozenIndex[],
-    stickySymbolCount: number [],
-    stickySymbolCountProb :number [],
-    prizeValue:number [],
-    prizeValueProb: number [], 
-    mysteryValues: number [],
-    mysteryValueProb :number [],
-    moonMysteryValues:number [],
-    moonMysteryValueProb: number [], 
-    bonusSymbolValue: bonusSymbol[],
-    frozenIndices:bonusSymbol[],
-    miniMultiplier:number,
-    minorMultiplier:number,
-    majorMultiplier:number,
-    grandMultiplier:number,
-    moonMultiplier:number,
-    minMatchCount:number,
-    freeSpinMatchCount:number,
-    moonMysteryData:bonusSymbol[],
-    isMoonJackpot:boolean,
-    isStickyBonusSymbol:boolean,
-    isGrandPrize:boolean,
-    isStickyBonus:boolean,
-    wildPayout:number,
-    isAllWild:boolean,
+    anyMatchCount:number;
     freeSpin: {
         freeSpinCount: number,
         freeSpinAwarded: number,
         useFreeSpin: boolean,
+        freeSpinPayout:number,
         freeSpinsAdded: boolean,
-        freeSpinPayout:number
     };
     wild: {
         SymbolName: string;
@@ -86,54 +58,37 @@ export interface SLSMSETTINGS {
     bonus:{
         SymbolName: string;
         SymbolID: number;
-        useWild: boolean
+        useWild: boolean;
     },
-    stickyBonus:{
+    jackpot:{
         SymbolName: string;
         SymbolID: number;
         useWild: boolean
     },
-    mystery:{
+    bar3:{
         SymbolName: string;
         SymbolID: number;
         useWild: boolean
     },
-    moonMystery:{
+    bar2:{
         SymbolName: string;
         SymbolID: number;
         useWild: boolean
     },
-    mini:{
+    bar1:{
         SymbolName: string;
         SymbolID: number;
         useWild: boolean
     },
-    minor:{
-        SymbolName: string;
-        SymbolID: number;
-        useWild: boolean
-    },
-    major:{    
-        SymbolName: string;
-        SymbolID: number;
-        useWild: boolean
-    },
-    moon:{    
-        SymbolName: string;
-        SymbolID: number;
-        useWild: boolean
-    }
+    isJackpot : boolean,
 }
 
 
 export enum specialIcons {
     wild = "Wild",
     bonus = "Bonus",
-    stickyBonus = "StickyBonus",
-    mystery = "Mystery",
-    moonMystery = "MoonMystery",
-    mini = "mini",
-    minor = "minor",
-    major = "major",
-    moon = "MOON"
+     jackpot = "Jackpot",
+     bar3 = "Bar3",
+     bar2 = "Bar2",
+     bar1 = "Bar1"
 }

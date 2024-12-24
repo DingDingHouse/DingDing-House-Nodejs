@@ -43,6 +43,8 @@ export function initializeGameSettings(gameData: any, gameInstance: SLPB) {
         coinsvalueDuringFreeSpinsProb: gameData.gameSettings.coinsvalueDuringFreeSpinsProb,
         pollyAdjacentSymbol: gameData.gameSettings.pollyAdjacentSymbol,
         pollyAdjacentSymbolProb: gameData.gameSettings.pollyAdjacentSymbolProb,
+        tommyAdjacentColumn:gameData.gameSettings.tommyAdjacentColumn,
+        tommyyAdjacentColumnProb:gameData.gameSettings.tommyyAdjacentColumnProb,
         colossalMergeProbability: gameData.gameSettings.colossalMergeProbability,
         tommyColossalSymbol: gameData.gameSettings.tommyColossalSymbol,
         tommyColossalSymbolProb: gameData.gameSettings.tommyColossalSymbolProb,
@@ -375,7 +377,9 @@ export function checkForWin(gameInstance: SLPB) {
         gameInstance.playerData.haveWon += gameInstance.playerData.currentWining;
         gameInstance.updatePlayerBalance(gameInstance.playerData.currentWining);
         makeResultJson(gameInstance);
-
+       if(!settings.thunderBonus.isThunderBonus){
+        settings.freeSpinIndices = [];
+       }
         // Reset properties after result processing
         gameInstance.playerData.currentWining = 0;
         gameInstance.settings._winData.winningLines = [];
@@ -557,7 +561,7 @@ function handleSpecialSymbols(symbol: any, gameInstance: SLPB) {
  * @throws An error if an invalid type is provided.
  */
 
-export function getRandomValue(gameInstance: SLPB, type: 'polly' | 'coinsValue' | 'pollySymbol' | 'tomCollosal' | 'coinsValueDuringFreeSpin'): number {
+export function getRandomValue(gameInstance: SLPB, type: 'polly' | 'coinsValue' | 'pollySymbol' | 'tomCollosal' | 'coinsValueDuringFreeSpin' |'tommy'): number {
     const { settings } = gameInstance;
 
     let values: number[];
@@ -577,6 +581,9 @@ export function getRandomValue(gameInstance: SLPB, type: 'polly' | 'coinsValue' 
     else if (type === 'pollySymbol') {
         values = settings?.pollyAdjacentColumn;
         probabilities = settings?.pollyAdjacentColumnProb;
+    }else if(type === 'tommy'){
+        values = settings?.tommyAdjacentColumn;
+        probabilities = settings?.tommyyAdjacentColumnProb
     }
     else if (type === 'tomCollosal') {
         values = settings?.tommyColossalSymbol;
@@ -644,13 +651,14 @@ function checkForThunderBonusGame(gameInstance: SLPB) {
             }
         })
     })
+    gameInstance.settings.frozenIndices = gameInstance.settings.bonusSymbolValue;
+
 
     if (coinCount >= 6) {
         gameInstance.settings.tempResultSymbolMatrix = settings.resultSymbolMatrix
 
         settings.thunderBonus.isThunderBonus = true;
         settings.thunderBonus.thunderSpinCount = settings.thunderBonus.thunderSpinAwardedCount;
-        gameInstance.settings.frozenIndices = gameInstance.settings.bonusSymbolValue;
     }
 }
 
@@ -825,18 +833,43 @@ function handleTomBonus(gameInstance: SLPB) {
         }
     }
 
-    if (checkProbability(settings.colossalMergeProbability)) {
-        const randomValue = getRandomValue(gameInstance, 'tomCollosal');
+    // if (checkProbability(settings.colossalMergeProbability)) {
+    //     const randomValue = getRandomValue(gameInstance, 'tomCollosal');
 
-        settings.resultSymbolMatrix.forEach((row) => {
-            row.fill(randomValue, 1, 4);
-        });
-        settings.freeSpin.freeSpinCount += 5
+    //     settings.resultSymbolMatrix.forEach((row) => {
+    //         row.fill(randomValue, 1, 4);
+    //     });
+    //     settings.freeSpin.freeSpinCount += 5
+    //     settings.freeSpin.freeSpinsAdded = true;
+    // }
+    // else {
+    //     console.log("Colossal merge will not happen.");
+    // }
+
+    const tommyAdjacentColumn = getRandomValue(gameInstance, 'tommy');
+   const symbolValue =  getRandomValue(gameInstance, 'tomCollosal');
+   console.log(symbolValue);
+   
+   if (
+    symbolValue === settings.bonus.SymbolID ||
+    symbolValue === settings.tomBonus.SymbolID ||
+    symbolValue === settings.arthurBonus.SymbolID ||
+    symbolValue === settings.pollyBonus.SymbolID
+) {    console.log("true");
+    
+    settings.freeSpin.freeSpinCount += 5
         settings.freeSpin.freeSpinsAdded = true;
-    }
-    else {
-        console.log("Colossal merge will not happen.");
-    }
+}
+    settings.resultSymbolMatrix.map((row, rowIndex) => {
+
+        row[tommyAdjacentColumn] = symbolValue;
+        
+       
+        row.fill(row[tommyAdjacentColumn], tommyAdjacentColumn + 1,tommyAdjacentColumn + 3);
+
+        console.log(row[tommyAdjacentColumn]);
+
+    })
 }
 
 /**
@@ -935,7 +968,7 @@ export function makeResultJson(gameInstance: SLPB) {
                 isFreeSpin: settings.freeSpin.useFreeSpin,
                 freeSpinCount: settings.freeSpin.freeSpinCount,
                 freeSpinAdded: settings.freeSpin.freeSpinsAdded,
-                frozenIndices: settings.frozenIndices,
+                frozenIndices: settings.frozenIndices.map((item)=> {return [...item.position,item.coinsvalue,item.symbol]}),
                 freeSpinIndices:settings.freeSpinIndices,
                 isArthurBonus: settings.isArthurBonus,
                 isTomBonus: settings.isTomBonus,

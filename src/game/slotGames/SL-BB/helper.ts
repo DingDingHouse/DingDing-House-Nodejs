@@ -657,6 +657,18 @@ export function makeResultJson(gameInstance: SLBB) {
     const { settings, playerData } = gameInstance;
     const credits = gameInstance.getPlayerData().credits
     const Balance = Number(credits.toFixed(2))
+    let copyCoins = [...settings.coins.values.map(v=>{
+      return {
+        ...v,
+        value: v.value/settings.BetPerLines
+      }
+    })]
+    let bonusCoins = [...settings.coins.bonusValues.map(v=>{
+      return {
+        ...v,
+        value: v.value/settings.BetPerLines
+      }
+    })]
     const sendData = {
       GameData: {
         ResultReel: settings.resultSymbolMatrix,
@@ -669,7 +681,8 @@ export function makeResultJson(gameInstance: SLBB) {
           isNewAdded: settings.freeSpin.isTriggered
         },
         winData: {
-          coinValues: settings.coins.values,
+          // coinValues: settings.coins.values,
+          coinValues: copyCoins,
           losPollos: settings.losPollos.values
         },
         jackpot: {
@@ -683,7 +696,8 @@ export function makeResultJson(gameInstance: SLBB) {
           BonusResult: settings.bonusResultMatrix.map(row => row.map(item => Number(item))),
           payout: settings.bonus.payout,
           spinCount: settings.bonus.count,
-          coins: settings.coins.bonusValues,
+          // coins: settings.coins.bonusValues,
+          coins: bonusCoins
         },
 
       },

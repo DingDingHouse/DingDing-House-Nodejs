@@ -1,3 +1,4 @@
+import { generatetrueRandomNumber } from "../../Utils/gameUtils";
 import { SLBB } from "./breakingBadBase";
 import { getCoinsValues, getRandomValue, handleCoinsAndCashCollect } from "./helper";
 
@@ -39,7 +40,12 @@ export class RandomBonusGenerator {
 
   }
   getRandomIndex(maxValue: number): number {
-    return Math.floor(Math.random() * (maxValue + 1));
+    let seed = Date.now() + Math.random() * 1000 ; 
+
+    
+    // return Math.floor(generateRandomNumber(seed, (maxValue + 1)));
+    return Math.floor(generatetrueRandomNumber (maxValue + 1));
+
   }
 
 }

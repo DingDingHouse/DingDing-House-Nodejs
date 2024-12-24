@@ -54,6 +54,8 @@ export interface SLSMSETTINGS {
     coinsvalueDuringFreeSpinsProb: number[],
     pollyAdjacentSymbol: number[],
     pollyAdjacentSymbolProb: number[],
+    tommyAdjacentColumn: number [],
+    tommyyAdjacentColumnProb: number [],
     tommyColossalSymbol: number[],
     tommyColossalSymbolProb: number[],
     colossalMergeProbability: number,
