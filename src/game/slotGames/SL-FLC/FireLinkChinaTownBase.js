@@ -9,12 +9,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SLAOG = void 0;
+exports.SLFLC = void 0;
 const sessionManager_1 = require("../../../dashboard/session/sessionManager");
-const utils_1 = require("../../../utils/utils");
 const RandomResultGenerator_1 = require("../RandomResultGenerator");
+const bonus_1 = require("./bonus");
 const helper_1 = require("./helper");
-class SLAOG {
+class SLFLC {
     constructor(currentGameData) {
         this.currentGameData = currentGameData;
         this.playerData = {
@@ -27,6 +27,7 @@ class SLAOG {
         };
         this.settings = (0, helper_1.initializeGameSettings)(currentGameData, this);
         (0, helper_1.generateInitialReel)(this.settings);
+        (0, bonus_1.generateBonusReel)(this.settings);
         (0, helper_1.sendInitData)(this);
         (0, helper_1.makePayLines)(this);
     }
@@ -61,9 +62,23 @@ class SLAOG {
                 this.prepareSpin(response.data);
                 this.getRTP(response.data.spins || 1);
                 break;
+            case "FREESPINOPTION":
+                if (response.data.option) {
+                    if (response.data.option >= this.settings.freespin.options.length ||
+                        response.data.option < 0 ||
+                        isNaN(response.data.option)) {
+                        console.log("Invalid Freespin Option");
+                    }
+                    else {
+                        this.settings.freespin.optionIndex = parseInt(response.data.option);
+                    }
+                }
+                else {
+                    this.settings.freespin.optionIndex = this.settings.freespin.defaultOptionIndex;
+                }
+                break;
             default:
-                console.warn(`Unhandled message ID: ${response.id}`);
-                this.sendError(`Unhandled message ID: ${response.id}`);
+                console.log("Invalid Message", response.id);
                 break;
         }
     }
@@ -81,24 +96,24 @@ class SLAOG {
                     this.sendError("Low Balance");
                     return;
                 }
-                const { currentBet } = this.settings;
-                if (!(this.settings.freeSpinCount > 0)) {
+                //FIX: refactor
+                let { currentBet } = this.settings;
+                if (this.settings.freespinCount <= 0) {
+                    this.playerData.totalbet += currentBet;
                     this.deductPlayerBalance(currentBet);
-                    this.playerData.totalbet = (0, utils_1.precisionRound)(this.playerData.totalbet + currentBet, 5);
                 }
-                else {
-                    this.settings.freeSpinCount--;
+                if (this.settings.freespinCount >= 0) {
+                    this.settings.freespinCount--;
                 }
                 const spinId = platformSession.currentGameSession.createSpin();
                 platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
-                new RandomResultGenerator_1.RandomResultGenerator(this);
+                if (this.settings.bonus.spinCount <= 0) {
+                    new RandomResultGenerator_1.RandomResultGenerator(this);
+                }
                 (0, helper_1.checkForWin)(this);
                 const winAmount = this.playerData.currentWining;
                 platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
-                //clear json
-                this.settings.resultSymbolMatrix = [];
-                this.settings._winData.winningLines = [];
-                this.settings._winData.winningSymbols = [];
+                this.updatePlayerBalance(this.playerData.currentWining);
             }
             catch (error) {
                 this.sendError("Spin error");
@@ -133,4 +148,4 @@ class SLAOG {
         });
     }
 }
-exports.SLAOG = SLAOG;
+exports.SLFLC = SLFLC;

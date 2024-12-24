@@ -9,12 +9,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SLAOG = void 0;
+exports.SLLS = void 0;
 const sessionManager_1 = require("../../../dashboard/session/sessionManager");
-const utils_1 = require("../../../utils/utils");
 const RandomResultGenerator_1 = require("../RandomResultGenerator");
 const helper_1 = require("./helper");
-class SLAOG {
+class SLLS {
     constructor(currentGameData) {
         this.currentGameData = currentGameData;
         this.playerData = {
@@ -70,7 +69,7 @@ class SLAOG {
     prepareSpin(data) {
         this.settings.currentLines = data.currentLines;
         this.settings.BetPerLines = this.settings.currentGamedata.bets[data.currentBet];
-        this.settings.currentBet = this.settings.BetPerLines * this.settings.currentLines;
+        this.settings.currentBet = this.settings.BetPerLines;
     }
     spinResult() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -78,27 +77,21 @@ class SLAOG {
                 const playerData = this.getPlayerData();
                 const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(playerData.username);
                 if (this.settings.currentBet > playerData.credits) {
+                    console.log(this.settings.currentBet + playerData.credits);
                     this.sendError("Low Balance");
                     return;
                 }
-                const { currentBet } = this.settings;
-                if (!(this.settings.freeSpinCount > 0)) {
-                    this.deductPlayerBalance(currentBet);
-                    this.playerData.totalbet = (0, utils_1.precisionRound)(this.playerData.totalbet + currentBet, 5);
-                }
-                else {
-                    this.settings.freeSpinCount--;
+                if (!this.settings.freeSpin.useFreeSpin) {
+                    yield this.deductPlayerBalance(this.settings.currentBet);
+                    // Ensure the totalbet is limited to 4 decimal places
+                    this.playerData.totalbet = parseFloat((this.playerData.totalbet + this.settings.currentBet).toFixed(4));
                 }
                 const spinId = platformSession.currentGameSession.createSpin();
                 platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
-                new RandomResultGenerator_1.RandomResultGenerator(this);
+                yield new RandomResultGenerator_1.RandomResultGenerator(this);
                 (0, helper_1.checkForWin)(this);
                 const winAmount = this.playerData.currentWining;
                 platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
-                //clear json
-                this.settings.resultSymbolMatrix = [];
-                this.settings._winData.winningLines = [];
-                this.settings._winData.winningSymbols = [];
             }
             catch (error) {
                 this.sendError("Spin error");
@@ -122,7 +115,6 @@ class SLAOG {
                 if (spend > 0) {
                     rtp = won / spend;
                 }
-                //
                 console.log('RTP calculated:', rtp * 100);
                 return;
             }
@@ -133,4 +125,4 @@ class SLAOG {
         });
     }
 }
-exports.SLAOG = SLAOG;
+exports.SLLS = SLLS;

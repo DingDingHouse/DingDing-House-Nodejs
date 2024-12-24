@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RandomBonusGenerator = void 0;
 exports.checkForBonus = checkForBonus;
 exports.handleBonusSpin = handleBonusSpin;
+const gameUtils_1 = require("../../Utils/gameUtils");
 const helper_1 = require("./helper");
 class RandomBonusGenerator {
     constructor(current) {
@@ -38,7 +39,9 @@ class RandomBonusGenerator {
         current.settings.bonusResultMatrix = matrix;
     }
     getRandomIndex(maxValue) {
-        return Math.floor(Math.random() * (maxValue + 1));
+        let seed = Date.now() + Math.random() * 1000;
+        // return Math.floor(generateRandomNumber(seed, (maxValue + 1)));
+        return Math.floor((0, gameUtils_1.generatetrueRandomNumber)(maxValue + 1));
     }
 }
 exports.RandomBonusGenerator = RandomBonusGenerator;

@@ -55,11 +55,15 @@ function initializeGameSettings(gameData, gameInstance) {
         majorMultiplier: gameData.gameSettings.majorMultiplier,
         grandMultiplier: gameData.gameSettings.grandMultiplier,
         moonMultiplier: gameData.gameSettings.moonMultiplier,
+        minMatchCount: gameData.gameSettings.minMatchCount,
+        freeSpinMatchCount: gameData.gameSettings.freeSpinMatchCount,
         moonMysteryData: [],
         isMoonJackpot: false,
         isStickyBonusSymbol: false,
         isGrandPrize: false,
         isStickyBonus: false,
+        wildPayout: gameData.gameSettings.wildPayout,
+        isAllWild: false,
         freeSpin: {
             freeSpinsAdded: false,
             freeSpinAwarded: gameData.gameSettings.freeSpinCount,
@@ -215,6 +219,7 @@ function sendInitData(gameInstance) {
             baseBet: gameInstance.settings.baseBetAmount,
             betMultiplier: gameInstance.settings.currentGamedata.betMultiplier,
             specialBonusSymbolMulipliers: bonusMulipliers,
+            allWildMultiplier: gameInstance.settings.wildPayout
         },
         UIData: gameUtils_1.UiInitData,
         PlayerData: {
@@ -269,6 +274,11 @@ function checkForWin(gameInstance) {
                     const payout = multiplier * settings.currentBet;
                     totalPayout += payout;
                 });
+                const alllWild = isEverySymbolWild(gameInstance);
+                if (alllWild) {
+                    settings.isAllWild = true;
+                    totalPayout += settings.wildPayout & settings.currentBet;
+                }
             }
         }
         else {
@@ -304,6 +314,7 @@ function checkForWin(gameInstance) {
         gameInstance.settings.bonusSymbolValue = [];
         settings.isGrandPrize = false;
         settings.moonMysteryData = [];
+        settings.isAllWild = false;
     }
     catch (error) {
         console.error("Error in checkForWin", error);
@@ -351,7 +362,7 @@ function countOccurenceOfSymbolsAndIndices(gameInstance) {
         }
     });
     // valid winning symbols(count greater or equal to 8)
-    const validWinSymbols = Object.entries(counts).filter(([_, count]) => count >= 8);
+    const validWinSymbols = Object.entries(counts).filter(([_, count]) => count >= settings.minMatchCount);
     // combine indices for valid symbols and wild symbols for symbols to emit
     validWinSymbols.forEach(([symbolId]) => {
         [symbolId, settings.wild.SymbolID].forEach(id => {
@@ -366,6 +377,13 @@ function countOccurenceOfSymbolsAndIndices(gameInstance) {
     settings._winData.winningSymbols = formattedIndices;
     // console.log(settings._winData.winningSymbols);
     return validWinSymbols;
+}
+//check if every Symbol Wild
+function isEverySymbolWild(gameInstance) {
+    const { settings } = gameInstance;
+    const { resultSymbolMatrix, wild } = settings;
+    // Check if all symbols are wild
+    return resultSymbolMatrix.every(row => row.every(num => num === wild.SymbolID));
 }
 /**
  * Retrieves the multiplier associated with a symbol and match count.
@@ -570,7 +588,7 @@ function checkForFreeSpin(gameInstance) {
         bonusSymbolCount += 1;
     }
     // determine if free spins are triggered
-    const isFreeSpin = bonusSymbolCount >= 6;
+    const isFreeSpin = bonusSymbolCount >= gameInstance.settings.freeSpinMatchCount;
     if (isFreeSpin) {
         // handle sticky bonus symbol if it exists
         if (stickyBonusValue.length > 0) {
@@ -617,6 +635,7 @@ function makeResultJson(gameInstance) {
                 moonMysteryData: settings.moonMysteryData,
                 isStickyBonus: settings.isStickyBonus,
                 stickyBonusValue: settings.stickyBonusValue,
+                isAllWild: settings.isAllWild,
             },
             PlayerData: {
                 Balance: gameInstance.getPlayerData().credits,
