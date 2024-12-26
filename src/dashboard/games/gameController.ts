@@ -229,6 +229,7 @@ export class GameController {
         tagName,
         slug,
         platform: platformName,
+        description,
       } = req.body;
 
       if (
@@ -284,6 +285,7 @@ export class GameController {
           }
         );
       } catch (uploadError) {
+        console.error("Error uploading thumbnail:", uploadError);
         throw createHttpError(500, "Failed to upload thumbnail");
       }
 
@@ -340,7 +342,8 @@ export class GameController {
         status,
         tagName,
         slug,
-        payout: contentId
+        payout: contentId,
+        description
       };
 
 
@@ -354,6 +357,8 @@ export class GameController {
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
+
+      console.error("Error adding game:", error);
 
       // If thumbnail was uploaded but an error occurred afterward, delete the thumbnail
       if (thumbnailUploadResult && thumbnailUploadResult.public_id) {
@@ -403,7 +408,6 @@ export class GameController {
   async getPlatforms(req: Request, res: Response, next: NextFunction) {
     try {
       const platforms = await Platform.find().select("name");
-      console.log("platforms", platforms);
       res.status(200).json(platforms);
     } catch (error) {
       console.error("Error fetching platforms:", error);
@@ -420,8 +424,7 @@ export class GameController {
 
     try {
       const { gameId } = req.params;
-      const { status, slug, platformName, ...updateFields } = req.body;
-
+      const { status, slug, platformName, description, ...updateFields } = req.body;
 
       if (!gameId) {
         throw createHttpError(400, "Game ID is required");
@@ -481,10 +484,12 @@ export class GameController {
         fieldsToUpdate.slug = slug;
       }
 
+      if (description) {
+        fieldsToUpdate.description = description;
+      }
+
       // Handle file for payout update
       if (req.files?.payoutFile) {
-
-
         // Delete the old payout
         if (game.payout) {
           await Payouts.findByIdAndDelete(game.payout);
