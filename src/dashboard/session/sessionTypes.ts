@@ -1,6 +1,7 @@
 export interface IGameSession {
     playerId: string;         // Unique player identifier
     gameId: string;           // Unique game identifier
+    gameName: string;         // Game name
     sessionId: string;        // Unique session identifier
     entryTime: Date;          // Session start time
     exitTime: Date | null;    // Session end time (null if not ended)

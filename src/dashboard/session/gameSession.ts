@@ -1,10 +1,13 @@
 import { v4 as uuidv4 } from "uuid";
 import { EventEmitter } from "events";
 import { ISpecialFeatures, ISpinData } from "./sessionTypes";
+import mongoose from "mongoose";
+import { Platform } from "../games/gameModel";
 
 export class GameSession extends EventEmitter {
     playerId: string;
     gameId: string;
+    gameName: string;
     sessionId: string;
     entryTime: Date;
     exitTime: Date | null = null;
@@ -24,6 +27,17 @@ export class GameSession extends EventEmitter {
         this.sessionId = this.generateSessionId();
         this.entryTime = new Date();
         this.creditsAtEntry = creditsAtEntry;
+        this.gameName = ""; // Initialize gameName
+        this.initializeGameName();
+    }
+
+    private async initializeGameName() {
+        try {
+            this.gameName = await this.getGameNameByTagName(this.gameId);
+        } catch (error) {
+            console.error("Error fetching game name:", error);
+            this.gameName = "Unknown Game";
+        }
     }
 
     private generateSessionId(): string {
@@ -88,6 +102,7 @@ export class GameSession extends EventEmitter {
         return {
             playerId: this.playerId,
             gameId: this.gameId,
+            gameName: this.gameName,
             sessionId: this.sessionId,
             entryTime: this.entryTime,
             exitTime: this.exitTime,
@@ -103,5 +118,20 @@ export class GameSession extends EventEmitter {
 
     private getSpinById(spinId: string): ISpinData | undefined {
         return this.spinData.find((spin) => spin.spinId === spinId);
+    }
+
+    async getGameNameByTagName(tagName: string): Promise<string | null> {
+        const platform = await Platform.aggregate([
+            { $unwind: "$games" },
+            { $match: { "games.tagName": tagName } },
+            { $project: { _id: 0, gameName: "$games.name" } },
+            { $limit: 1 }
+        ]);
+
+        if (platform.length === 0) {
+            return null;
+        }
+
+        return platform[0].gameName;
     }
 }

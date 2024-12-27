@@ -28,6 +28,7 @@ const SpinDataSchema: Schema<ISpinData> = new Schema({
 
 const GameSessionSchema: Schema<IGameSession> = new Schema({
     gameId: { type: String, required: true },
+    gameName: { type: String, required: true },
     sessionId: { type: String, required: true },
     entryTime: { type: Date, required: true },
     exitTime: { type: Date, default: null },
@@ -50,5 +51,7 @@ const PlatformSessionSchema: Schema = new Schema({
     currentRTP: { type: Number, default: 0 },
     gameSessions: { type: [GameSessionSchema], default: [] },  // Multiple game sessions as an array
 }, { timestamps: true });
+
+
 
 export const PlatformSessionModel: Model<Document> = mongoose.model<Document>('PlatformSession', PlatformSessionSchema);
