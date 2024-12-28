@@ -1,3 +1,4 @@
+import { BotList } from "aws-sdk/clients/chime";
 import { GameData } from "../BaseSlotGame/gameType";
 import { WinData } from "../BaseSlotGame/WinData";
 
@@ -5,31 +6,10 @@ interface Symbol {
     Name: string;
     Id: number;
     payout: number;
-    canmatch:[];
     reelInstance: { [key: string]: number };
 }
 
-export interface FrozenIndex {
-    position: [number, number];
-    prizeValue?:number;
-    value: number;
-    symbol:number|string;
-  }
-
- 
-export interface bonusSymbol {
-    position: [number, number];
-    prizeValue:number;
-    symbol:number|string;
-
-  } 
-
-//  export interface mysterySymbol {
-//     position: [number, number];
-//     prizeValue?:number;
-//     symbol: number;
-//  } 
-export interface SLLSSETTINGS {
+export interface SLFMSETTINGS {
     id: string;
     matrix: { x: number, y: number };
     currentGamedata: GameData;
@@ -43,7 +23,6 @@ export interface SLLSSETTINGS {
     bets: number[];
     reels: any[][];
     Symbols: Symbol[];
-    payoutCombination: any [][],
     anyMatchCount:number;
     freeSpin: {
         freeSpinCount: number,
@@ -62,35 +41,23 @@ export interface SLLSSETTINGS {
         SymbolID: number;
         useWild: boolean;
     },
-    jackpot:{
+    scatter:{
         SymbolName: string;
         SymbolID: number;
         useWild: boolean
     },
-    bar3:{
-        SymbolName: string;
-        SymbolID: number;
-        useWild: boolean
-    },
-    bar2:{
-        SymbolName: string;
-        SymbolID: number;
-        useWild: boolean
-    },
-    bar1:{
-        SymbolName: string;
-        SymbolID: number;
-        useWild: boolean
-    },
-    isJackpot : boolean,
+    wildCountsToFreeGames:object,
+    bonusCountsToFreeGames:object,
+    scatterCountsToMultiplier:object,
+    isMinor:boolean,
+    isMajor:boolean,
+    isGrand:boolean
+
 }
 
 
 export enum specialIcons {
     wild = "Wild",
     bonus = "Bonus",
-     jackpot = "Jackpot",
-     bar3 = "Bar3",
-     bar2 = "Bar2",
-     bar1 = "Bar1"
+     scatter = "Scatter"
 }

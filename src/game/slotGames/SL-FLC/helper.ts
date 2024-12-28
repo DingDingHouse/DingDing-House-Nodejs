@@ -2,6 +2,7 @@ import { WinData } from "../BaseSlotGame/WinData";
 import {
   convertSymbols,
   UiInitData,
+  shuffleArray
 } from "../../Utils/gameUtils";
 
 import { specialIcons } from "./types";
@@ -92,16 +93,6 @@ export function generateInitialReel(gameSettings: any): string[][] {
   return reels;
 }
 
-/**
- * Shuffles the elements of an array in place using the Fisher-Yates algorithm.
- * @param array - The array to be shuffled.
- */
-function shuffleArray(array: any[]) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
 
 export function makePayLines(gameInstance: SLFLC) {
   const { settings } = gameInstance;
@@ -418,13 +409,15 @@ export function checkForWin(gameInstance: SLFLC) {
     if (settings.bonus.spinCount < 0) {
       //NOTE: check for bonus 
       console.log("bonus", checkForBonus(gameInstance))
+      gameInstance.playerData.currentWining = precisionRound(totalPayout, 5);
+      gameInstance.playerData.haveWon = precisionRound(gameInstance.playerData.haveWon +
+        gameInstance.playerData.currentWining, 5)
     } else {
       handleBonusSpin(gameInstance)
+      gameInstance.playerData.haveWon = precisionRound(gameInstance.playerData.haveWon +
+        gameInstance.playerData.currentWining, 5)
     }
 
-    gameInstance.playerData.currentWining = precisionRound(totalPayout, 5);
-    gameInstance.playerData.haveWon = precisionRound(gameInstance.playerData.haveWon +
-      gameInstance.playerData.currentWining, 5)
     makeResultJson(gameInstance)
 
     settings.isFreespin = false

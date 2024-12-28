@@ -2,6 +2,7 @@ import { WinData } from "../BaseSlotGame/WinData";
 import {
     convertSymbols,
     UiInitData,
+    shuffleArray
 } from "../../Utils/gameUtils";
 import { SLBS } from "./buffalo777Base"
 import { FrozenIndex, specialIcons } from "./types";
@@ -98,17 +99,6 @@ export function generateInitialReel(gameSettings: any): string[][] {
 
 
 
-/**
- * Shuffles the elements of an array in place using the Fisher-Yates algorithm.
- * @param array - The array to be shuffled.
- */
-
-function shuffleArray(array: any[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
 
 /**
  * Configures paylines based on the game's settings and handles special symbols.
@@ -283,34 +273,6 @@ function checkSymbolOcuurence(gameInstance:SLBS){
 
         return { isWinning, totalPayout};
     
-}
-
-
-/**
- * Retrieves the multiplier associated with a symbol and match count.
- * @param symbol - The symbol for which the multiplier is retrieved.
- * @param matchCount - The number of matching symbols.
- * @param gameInstance - The game instance containing symbol data.
- * @returns The multiplier value or 0 if no data is found.
- */
-
-function accessData(symbol, matchCount, gameInstance: SLBS) {
-    const { settings } = gameInstance;
-    try {
-        const symbolData = settings.currentGamedata.Symbols.find(
-            (s) => s.Id.toString() === symbol.toString()
-        );
-        if (symbolData) {
-            const multiplierArray = symbolData.multiplier;
-            if (multiplierArray && multiplierArray[16 - matchCount]) {
-                return multiplierArray[16 - matchCount][0];
-            }
-        }
-        return 0;
-    } catch (error) {
-        // console.error("Error in accessData:");
-        return 0;
-    }
 }
 
 /**
