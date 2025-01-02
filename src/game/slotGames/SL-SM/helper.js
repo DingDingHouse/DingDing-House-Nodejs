@@ -134,7 +134,7 @@ function generateInitialReel(gameSettings) {
         }
     });
     reels.forEach((reel) => {
-        shuffleArray(reel);
+        (0, gameUtils_1.shuffleArray)(reel);
     });
     return reels;
 }
@@ -154,20 +154,10 @@ function generateInitialBonusReel(gameSettings) {
         }
     });
     reels.forEach((reel) => {
-        shuffleArray(reel);
+        (0, gameUtils_1.shuffleArray)(reel);
     });
     gameSettings.bonusReels = reels;
     return reels;
-}
-/**
- * Shuffles the elements of an array in place using the Fisher-Yates algorithm.
- * @param array - The array to be shuffled.
- */
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
 }
 /**
  * Configures paylines based on the game's settings and handles special symbols.

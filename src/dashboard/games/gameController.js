@@ -205,7 +205,7 @@ class GameController {
             session.startTransaction();
             let thumbnailUploadResult;
             try {
-                const { name, url, type, category, status, tagName, slug, platform: platformName, } = req.body;
+                const { name, url, type, category, status, tagName, slug, platform: platformName, description, } = req.body;
                 if (!name ||
                     !url ||
                     !type ||
@@ -246,6 +246,7 @@ class GameController {
                     });
                 }
                 catch (uploadError) {
+                    console.error("Error uploading thumbnail:", uploadError);
                     throw (0, http_errors_1.default)(500, "Failed to upload thumbnail");
                 }
                 // Handle file for payout
@@ -292,7 +293,8 @@ class GameController {
                     status,
                     tagName,
                     slug,
-                    payout: contentId
+                    payout: contentId,
+                    description
                 };
                 platform.games.push(newGame);
                 yield platform.save({ session });
@@ -303,6 +305,7 @@ class GameController {
             catch (error) {
                 yield session.abortTransaction();
                 session.endSession();
+                console.error("Error adding game:", error);
                 // If thumbnail was uploaded but an error occurred afterward, delete the thumbnail
                 if (thumbnailUploadResult && thumbnailUploadResult.public_id) {
                     cloudinary_1.default.v2.uploader.destroy(thumbnailUploadResult.public_id, (destroyError, result) => {
@@ -343,7 +346,6 @@ class GameController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const platforms = yield gameModel_1.Platform.find().select("name");
-                console.log("platforms", platforms);
                 res.status(200).json(platforms);
             }
             catch (error) {
@@ -361,7 +363,7 @@ class GameController {
             let thumbnailUploadResult;
             try {
                 const { gameId } = req.params;
-                const _c = req.body, { status, slug, platformName } = _c, updateFields = __rest(_c, ["status", "slug", "platformName"]);
+                const _c = req.body, { status, slug, platformName, description } = _c, updateFields = __rest(_c, ["status", "slug", "platformName", "description"]);
                 if (!gameId) {
                     throw (0, http_errors_1.default)(400, "Game ID is required");
                 }
@@ -404,6 +406,9 @@ class GameController {
                 }
                 if (slug) {
                     fieldsToUpdate.slug = slug;
+                }
+                if (description) {
+                    fieldsToUpdate.description = description;
                 }
                 // Handle file for payout update
                 if ((_a = req.files) === null || _a === void 0 ? void 0 : _a.payoutFile) {

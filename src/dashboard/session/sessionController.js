@@ -56,6 +56,7 @@ class SessionController {
                 }
                 // Fetch paginated data
                 const platformSessions = yield sessionModel_1.PlatformSessionModel.find(query)
+                    .sort({ entryTime: -1 })
                     .skip((Number(page) - 1) * Number(limit))
                     .limit(Number(limit))
                     .lean();

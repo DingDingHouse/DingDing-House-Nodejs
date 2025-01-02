@@ -89,20 +89,10 @@ function generateInitialReel(gameSettings) {
         }
     });
     reels.forEach((reel) => {
-        shuffleArray(reel);
+        (0, gameUtils_1.shuffleArray)(reel);
     });
     gameSettings.reels = reels;
     return reels;
-}
-/**
- * Shuffles the elements of an array in place using the Fisher-Yates algorithm.
- * @param array - The array to be shuffled.
- */
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
 }
 function makePayLines(gameInstance) {
     const { settings } = gameInstance;
@@ -387,13 +377,15 @@ function checkForWin(gameInstance) {
         if (settings.bonus.spinCount < 0) {
             //NOTE: check for bonus 
             console.log("bonus", (0, bonus_1.checkForBonus)(gameInstance));
+            gameInstance.playerData.currentWining = (0, utils_1.precisionRound)(totalPayout, 5);
+            gameInstance.playerData.haveWon = (0, utils_1.precisionRound)(gameInstance.playerData.haveWon +
+                gameInstance.playerData.currentWining, 5);
         }
         else {
             (0, bonus_1.handleBonusSpin)(gameInstance);
+            gameInstance.playerData.haveWon = (0, utils_1.precisionRound)(gameInstance.playerData.haveWon +
+                gameInstance.playerData.currentWining, 5);
         }
-        gameInstance.playerData.currentWining = (0, utils_1.precisionRound)(totalPayout, 5);
-        gameInstance.playerData.haveWon = (0, utils_1.precisionRound)(gameInstance.playerData.haveWon +
-            gameInstance.playerData.currentWining, 5);
         makeResultJson(gameInstance);
         settings.isFreespin = false;
         if (settings.bonus.spinCount > 0) {

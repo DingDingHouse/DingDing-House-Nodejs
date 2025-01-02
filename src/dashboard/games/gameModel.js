@@ -63,6 +63,9 @@ const newGameSchema = new mongoose_1.Schema({
         required: true,
         ref: 'Payout'
     },
+    description: {
+        type: String,
+    },
     createdAt: {
         type: Date,
         default: Date.now

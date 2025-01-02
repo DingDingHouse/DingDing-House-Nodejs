@@ -74,7 +74,7 @@ function generateInitialReel(gameSettings) {
                     reel.push(symbol.Id);
                 }
             });
-            shuffleArray(reel);
+            (0, gameUtils_1.shuffleArray)(reel);
             reels.push(reel);
         }
         // console.log("Generated reels:", reels);
@@ -83,12 +83,6 @@ function generateInitialReel(gameSettings) {
     catch (e) {
         console.error("Error in generateInitialReel:", e);
         return [];
-    }
-}
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
     }
 }
 function sendInitData(gameInstance) {

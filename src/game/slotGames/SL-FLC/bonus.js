@@ -6,6 +6,7 @@ exports.populateScatterValues = populateScatterValues;
 exports.checkForBonus = checkForBonus;
 exports.handleBonusSpin = handleBonusSpin;
 exports.rowsOnExpand = rowsOnExpand;
+exports.collectScatter = collectScatter;
 const gameUtils_1 = require("../../Utils/gameUtils");
 const helper_1 = require("./helper");
 class RandomBonusGenerator {
@@ -86,7 +87,7 @@ function populateScatterValues(gameInstance, type) {
                         settings.bonus.spinCount = 3;
                     }
                     //NOTE: add scatter to values
-                    const scatterValue = (0, helper_1.getRandomValue)(gameInstance, "scatter");
+                    const scatterValue = (0, helper_1.getRandomValue)(gameInstance, "scatter") * settings.currentBet;
                     console.log("populate sc", x, y, scatterValue);
                     settings.scatter.values.push({
                         value: scatterValue,
@@ -118,6 +119,12 @@ function handleBonusSpin(gameInstance) {
     settings.currentGamedata.matrix.y = rows;
     settings.bonus.spinCount--;
     settings.bonus.scatterCount = scatterCount;
+    if (scatterCount === 40) {
+        settings.bonus.spinCount = -1;
+    }
+    if (settings.bonus.spinCount < 0) {
+        collectScatter(gameInstance);
+    }
 }
 function rowsOnExpand(count, triggers) {
     for (let trigger of triggers) {
@@ -125,4 +132,10 @@ function rowsOnExpand(count, triggers) {
             return trigger.rows;
         }
     }
+}
+function collectScatter(gameInstance) {
+    const { settings } = gameInstance;
+    const totalPayout = settings.scatter.values.reduce((acc, sc) => acc + sc.value, 0);
+    console.log(totalPayout);
+    gameInstance.playerData.currentWining = totalPayout;
 }

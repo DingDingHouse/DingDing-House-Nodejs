@@ -47,6 +47,7 @@ const SpinDataSchema = new mongoose_1.Schema({
 }, { _id: false });
 const GameSessionSchema = new mongoose_1.Schema({
     gameId: { type: String, required: true },
+    gameName: { type: String, required: true },
     sessionId: { type: String, required: true },
     entryTime: { type: Date, required: true },
     exitTime: { type: Date, default: null },

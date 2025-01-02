@@ -122,16 +122,17 @@ function shuffleArray(array) {
         (max) => generateRandomNumber(Date.now(), max), // RNG1
         (max) => chaoticRandom(generateUniqueSeed()) * max, // RNG2
         (max) => generatelcgRandomNumbers(generateUniqueSeed(), max), // RNG3
-        (max) => generatetrueRandomNumber(max) // RNG4      
+        (max) => generatetrueRandomNumber(max) // RNG4
     ];
     for (let i = array.length - 1; i > 0; i--) {
         const rngIndex = Math.floor(Math.random() * rngFunctions.length);
         const rngFunction = rngFunctions[rngIndex];
-        let j = Math.floor(rngFunction(i + 1));
-        let k = array[i];
-        array[i] = array[j];
-        array[j] = k;
+        const j = Math.floor(rngFunction(i + 1));
+        // Swap elements at index i and j
+        [array[i], array[j]] = [array[j], array[i]];
     }
+    // Return the shuffled array
+    return array;
 }
 // RNG1
 function newtonRng(seed, maxIterations = 10) {

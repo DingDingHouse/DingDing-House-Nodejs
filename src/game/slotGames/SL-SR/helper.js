@@ -89,21 +89,9 @@ function generateInitialReel(gameSettings) {
         }
     });
     reels.forEach((reel) => {
-        shuffleArray(reel);
+        (0, gameUtils_1.shuffleArray)(reel);
     });
     return reels;
-}
-/**
- * Shuffles the elements of an array in place using the Fisher-Yates algorithm.
- * @param array - The array to be shuffled.
- */
-// Utility function to shuffle an array and return the shuffled array
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array; // Make sure to return the shuffled array
 }
 function makePayLines(gameInstance) {
     const { settings } = gameInstance;
@@ -251,7 +239,7 @@ function runBonusGame(bonusSymbolCount, gameInstance) {
         console.log("Selected Bonus Values: ", selectedBonusValues);
         settings.selectedMultiplier = selectMultiplierFromArray(settings.multiplierArray, settings.multiplierProbabilities);
         console.log("Selected Multiplier: ", settings.selectedMultiplier);
-        settings.shuffledBonusValues = shuffleArray(selectedBonusValues);
+        settings.shuffledBonusValues = (0, gameUtils_1.shuffleArray)(selectedBonusValues);
         console.log("Shuffled Bonus Values: ", settings.shuffledBonusValues);
         const sumOfValues = settings.shuffledBonusValues.slice(0, -1).reduce((sum, value) => sum + value, 0);
         const bonusWin = sumOfValues * settings.selectedMultiplier;

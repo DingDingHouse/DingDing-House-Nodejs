@@ -171,7 +171,7 @@ function generateInitialReel(gameSettings) {
     });
     // Shuffle each reel
     reels.forEach(reel => {
-        shuffleArray(reel);
+        (0, gameUtils_1.shuffleArray)(reel);
     });
     gameSettings.reels = reels;
     return reels;
@@ -201,16 +201,10 @@ function generateInitialBonusReel(gameSettings) {
         }
     });
     reels.forEach(reel => {
-        shuffleArray(reel);
+        (0, gameUtils_1.shuffleArray)(reel);
     });
     gameSettings.bonusReels = reels;
     return reels;
-}
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
 }
 function sendInitData(gameInstance) {
     gameUtils_1.UiInitData.paylines = (0, gameUtils_1.convertSymbols)(gameInstance.settings.Symbols);
