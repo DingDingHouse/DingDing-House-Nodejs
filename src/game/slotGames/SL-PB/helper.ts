@@ -295,14 +295,13 @@ export function checkForWin(gameInstance: SLPB) {
                 if (settings.thunderBonus.thunderSpinCount <= 0) {
                     const payoutOfBonusGame = calculatePayoutOfBonusGame(gameInstance);
                     // console.log(payoutOfBonusGame, "Payout of bonus games");
-                    settings.thunderBonus.thunderSpinPayout = payoutOfBonusGame;
+                    settings.thunderBonus.thunderSpinPayout += payoutOfBonusGame;
                     settings.thunderBonus.isThunderBonus = false;
                     settings.frozenIndices = [];
                 }
             }
             handleBonusGameSpin(gameInstance);
         } else {
-            checkForThunderBonusGame(gameInstance);
             if (settings.freeSpin.useFreeSpin) {
                 switch (true) {
                     case settings.isArthurBonus:
@@ -321,6 +320,7 @@ export function checkForWin(gameInstance: SLPB) {
             } else {
                 checkForFreeSpin(gameInstance);
             }
+            checkForThunderBonusGame(gameInstance);
 
 
             settings.lineData.forEach((line, index) => {
@@ -361,9 +361,10 @@ export function checkForWin(gameInstance: SLPB) {
             });
 
         }
-        gameInstance.playerData.currentWining += totalPayout;
+    
 
         totalPayout += settings.thunderBonus.thunderSpinPayout;
+        gameInstance.playerData.currentWining += totalPayout;
 
         //   console.log("Total Winning", gameInstance.playerData.currentWining);
         //   console.log("Total Free Spins Won:", gameInstance.settings.freeSpin.freeSpinCount);
