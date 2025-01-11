@@ -111,7 +111,7 @@ function checkOcurrenceOfSymbols(gameInstance) {
                                     default:
                                         break;
                                 }
-                                settings.moonMysteryData.push({ position: [colIndex, rowIndex], prizeValue: prizeValue, symbol: transformedSymbol });
+                                settings.moonMysteryData.push({ id: 0, position: [colIndex, rowIndex], prizeValue: prizeValue, symbol: transformedSymbol });
                                 break;
                             case symbol == settings.moonMystery.SymbolID:
                                 transformedSymbol = (0, helper_1.getRandomValue)(gameInstance, 'moonMystery');
@@ -135,7 +135,7 @@ function checkOcurrenceOfSymbols(gameInstance) {
                                     default:
                                         break;
                                 }
-                                settings.moonMysteryData.push({ position: [colIndex, rowIndex], prizeValue: prizeValue, symbol: transformedSymbol });
+                                settings.moonMysteryData.push({ id: 1, position: [colIndex, rowIndex], prizeValue: prizeValue, symbol: transformedSymbol });
                                 break;
                             case symbol == settings.mini.SymbolID:
                                 prizeValue = settings.miniMultiplier;

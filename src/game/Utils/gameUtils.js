@@ -1,4 +1,27 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -19,8 +42,12 @@ exports.shuffleArray = shuffleArray;
 exports.generateRandomNumber = generateRandomNumber;
 exports.generatelcgRandomNumbers = generatelcgRandomNumbers;
 exports.generatetrueRandomNumber = generatetrueRandomNumber;
+exports.generatePaytableJSON = generatePaytableJSON;
+exports.writeMultipleArraysToCSV = writeMultipleArraysToCSV;
 const userModel_1 = require("../../dashboard/users/userModel");
 const crypto_1 = __importDefault(require("crypto"));
+const fs = __importStar(require("fs"));
+const rtp_1 = require("../KenoGames/KenoBaseGame/rtp");
 var specialIcons;
 (function (specialIcons) {
     specialIcons["bonus"] = "Bonus";
@@ -191,4 +218,38 @@ function generatetrueRandomNumber(max) {
 }
 function generateUniqueSeed() {
     return Math.floor(Date.now() * Math.random() + performance.now());
+}
+/**
+ * Function to generate paytable JSON file
+ * @param {number} N - The population size
+ * @param {number} n - The number of draws
+ * @param {number} maxPicks - The maximum number of picks
+ * @param {number} desiredRTP - The desired RTP
+ * @param {(k: number, picks: number, desiredRTP: number) => number} payoutMultiplier - The function to calculate the payout multiplier
+ * @param {string} outputPath - The path to save the JSON file
+ */
+function generatePaytableJSON(N, n, maxPicks, desiredRTP, payoutMultiplier, outputPath) {
+    const { paytables } = (0, rtp_1.generatePaytables)(N, n, maxPicks, desiredRTP, payoutMultiplier);
+    const payoutArray = [];
+    for (let picks = 1; picks <= maxPicks; picks++) {
+        const payoutsForPicks = paytables[picks].map(entry => entry.payout).slice(1);
+        payoutArray.push(payoutsForPicks);
+    }
+    const jsonData = {
+        desiredRTP,
+        payoutArray
+    };
+    fs.writeFileSync(outputPath, JSON.stringify(jsonData, null, 2), 'utf-8');
+    console.log(`Paytable JSON file successfully generated at: ${outputPath}`);
+}
+function writeMultipleArraysToCSV(filename, data) {
+    try {
+        const csvContent = data.map(row => row.join(',')).join('\n');
+        fs.writeFileSync(filename, csvContent);
+        console.log(`Successfully wrote data to ${filename}`);
+    }
+    catch (error) {
+        console.error('Error writing CSV file:', error);
+        throw error;
+    }
 }
