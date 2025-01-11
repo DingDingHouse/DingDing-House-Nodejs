@@ -89,6 +89,7 @@ class SLPM {
                 const spinId = platformSession.currentGameSession.createSpin();
                 platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
                 yield new RandomResultGenerator_1.RandomResultGenerator(this);
+                (0, helper_1.checkForJackpot)(this);
                 (0, helper_1.checkForWin)(this);
                 if (this.settings.freeSpin.freeSpinCount == 0) {
                     this.settings.freeSpin.freeSpinStarted = false;

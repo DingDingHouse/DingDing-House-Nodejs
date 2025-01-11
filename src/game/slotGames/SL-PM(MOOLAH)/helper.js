@@ -4,6 +4,7 @@ exports.initializeGameSettings = initializeGameSettings;
 exports.generateInitialReel = generateInitialReel;
 exports.makePayLines = makePayLines;
 exports.checkForWin = checkForWin;
+exports.checkForJackpot = checkForJackpot;
 exports.sendInitData = sendInitData;
 exports.makeResultJson = makeResultJson;
 const WinData_1 = require("../BaseSlotGame/WinData");
@@ -39,6 +40,7 @@ function initializeGameSettings(gameData, gameInstance) {
         firstReel: [],
         tempReelSym: [],
         freeSpinData: gameData.gameSettings.freeSpinData,
+        jackpotWinSymbols: [],
         jackpot: {
             symbolName: "",
             symbolsCount: 0,
@@ -391,6 +393,42 @@ function cascadeSymbols(gameInstance) {
     settings.tempReel = [];
     settings._winData.winningLines = [];
     checkForWin(gameInstance);
+}
+function checkForJackpot(gameInstance) {
+    const { settings, playerData } = gameInstance;
+    if (settings.jackpot.useJackpot) {
+        var temp = findSymbol(types_1.specialIcons.jackpot, gameInstance);
+        if (temp.length > 0)
+            settings.jackpotWinSymbols.push(...temp);
+        if (settings.jackpot.symbolsCount > 0 &&
+            settings.jackpot.symbolsCount == settings.jackpotWinSymbols.length) {
+            // console.log("!!!!!JACKPOT!!!!!");
+            settings._winData.winningSymbols.push(settings.jackpotWinSymbols);
+            settings._winData.totalWinningAmount += settings.jackpot.defaultAmount * settings.BetPerLines;
+            settings.payoutAfterCascading += settings.jackpot.defaultAmount * settings.BetPerLines;
+            settings._winData.jackpotwin += settings.jackpot.defaultAmount * settings.BetPerLines;
+            playerData.haveWon += settings.jackpot.defaultAmount * settings.BetPerLines;
+        }
+    }
+}
+//finding Symbols for special case element
+function findSymbol(SymbolName, gameInstance) {
+    const { settings } = gameInstance;
+    let symbolId = -1;
+    let foundArray = [];
+    settings.currentGamedata.Symbols.forEach((element) => {
+        if (SymbolName == element.Name)
+            symbolId = element.Id;
+    });
+    console.log(settings.resultSymbolMatrix);
+    for (let i = 0; i < settings.resultSymbolMatrix.length; i++) {
+        for (let j = 0; j < settings.resultSymbolMatrix[i].length; j++) {
+            console.log(settings.resultSymbolMatrix[i][j]);
+            if (settings.resultSymbolMatrix[i][j] == symbolId)
+                foundArray.push(j.toString() + "," + i.toString());
+        }
+    }
+    return foundArray;
 }
 /**
  * Sends the initial game and player data to the client.

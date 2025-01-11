@@ -234,16 +234,19 @@ function sendInitData(gameInstance) {
  * @param gameInstance - The instance of the SLSM class managing the game logic.
  */
 function checkForWin(gameInstance) {
+    var _a;
     try {
         const { settings } = gameInstance;
         const winningLines = [];
         let totalPayout = 0;
         if (!settings.freeSpin.useFreeSpin) {
             // handle stickybonussymbol and freeze
-            if (settings.stickyBonusValue.length > 0) {
+            if (((_a = settings.stickyBonusValue[0]) === null || _a === void 0 ? void 0 : _a.value) > 0) {
+                settings.stickyBonusValue = settings.stickyBonusValue.filter(frozenObject => frozenObject.value !== 0);
+                handleStickySymbol(gameInstance);
                 settings.stickyBonusValue[0].value--;
                 freezeSymbolonSpecificIndex(gameInstance);
-                if (settings.stickyBonusValue[0].value <= 0) {
+                if (settings.stickyBonusValue[0].value < 0) {
                     //remove stickyBonusSymbol
                     settings.stickyBonusValue.splice(0, 1);
                     // console.log("After Decrementedto zero:", settings.stickyBonusValue.length);
@@ -324,6 +327,7 @@ function countOccurenceOfSymbolsAndIndices(gameInstance) {
     const indices = {};
     let wildCount = 0;
     let combinedIndices = new Set();
+    settings.stickyBonusValue = settings.stickyBonusValue.filter(frozenObject => frozenObject.symbol !== settings.bonus.SymbolID);
     // count symbols and track their indices
     settings.resultSymbolMatrix.forEach((row, rowIndex) => {
         row.forEach((num, colIndex) => {
@@ -338,6 +342,15 @@ function countOccurenceOfSymbolsAndIndices(gameInstance) {
                 if (!indices[num])
                     indices[num] = [];
                 indices[num].push([rowIndex, colIndex]);
+            }
+        });
+    });
+    settings.resultSymbolMatrix.forEach((row, rowIndex) => {
+        row.forEach((num, colIndex) => {
+            if (num === settings.bonus.SymbolID) {
+                const stickyCount = 0;
+                const prizeValue = getRandomValue(gameInstance, 'prize');
+                settings.stickyBonusValue.push({ position: [colIndex, rowIndex], prizeValue: prizeValue, value: stickyCount, symbol: num });
             }
         });
     });
@@ -483,13 +496,56 @@ function handleStickyBonus(gameInstance) {
             }
         });
     });
-    // if sticky bonus symbols is there, find highest sticky bonus
-    if (stickyBonusIndices.length > 0) {
-        const maxFrozenObject = stickyBonusIndices.reduce((max, frozenObject) => frozenObject.value > max.value ? frozenObject : max, stickyBonusIndices[0]);
-        stickyBonusValue.push(maxFrozenObject);
+    settings.stickyBonusValue = stickyBonusIndices;
+    // console.log(settings.stickyBonusValue, "DD"); 
+    // If sticky bonus symbols exist, find the highest sticky bonus and set others to 0
+    if (settings.stickyBonusValue.length > 0) {
+        const maxFrozenObject = settings.stickyBonusValue.reduce((max, frozenObject) => frozenObject.value > max.value ? frozenObject : max, settings.stickyBonusValue[0]);
+        settings.stickyBonusValue = [
+            maxFrozenObject,
+            ...settings.stickyBonusValue
+                .filter(frozenObject => frozenObject !== maxFrozenObject)
+                .map(frozenObject => (Object.assign(Object.assign({}, frozenObject), { value: 0, prizeValue: 0 })))
+        ];
         settings.isStickyBonus = true;
     }
-    // console.log(stickyBonusValue, "FROZEN INDEX");    
+    // console.log(settings.stickyBonusValue, "FROZEN INDEX");
+}
+function handleStickySymbol(gameInstance) {
+    const { settings } = gameInstance;
+    const { resultSymbolMatrix, stickyBonus } = settings;
+    let stickyBonusIndices = [];
+    // Check if the sticky bonus symbol is defined
+    if (!(stickyBonus === null || stickyBonus === void 0 ? void 0 : stickyBonus.SymbolID)) {
+        console.warn("Sticky Bonus SymbolID is not defined.");
+        return;
+    }
+    // Iterate through the result symbol matrix to identify sticky bonus symbols
+    resultSymbolMatrix.forEach((row, rowIndex) => {
+        row.forEach((symbol, colIndex) => {
+            if (symbol === stickyBonus.SymbolID) {
+                const prizeValue = getRandomValue(gameInstance, 'prize');
+                const position = [colIndex, rowIndex];
+                // Check if the position already exists in stickyBonusValue
+                const alreadyExists = settings.stickyBonusValue.some((existing) => existing.position[0] === position[0] && existing.position[1] === position[1]);
+                // If not, add it to the indices
+                if (!alreadyExists) {
+                    stickyBonusIndices.push({
+                        position,
+                        prizeValue,
+                        value: 0,
+                        symbol,
+                    });
+                }
+            }
+        });
+    });
+    // Add all unique sticky bonus symbols to stickyBonusValue
+    if (stickyBonusIndices.length > 0) {
+        stickyBonusIndices.forEach((frozenObject) => {
+            settings.stickyBonusValue.push(frozenObject);
+        });
+    }
 }
 /**
  * Retrieves a random value based on the specified type and its associated probabilities.
@@ -622,7 +678,12 @@ function makeResultJson(gameInstance) {
                 frozenIndices: settings.frozenIndices,
                 isGrandPrize: settings.isGrandPrize,
                 isMoonJackpot: settings.isMoonJackpot,
-                moonMysteryData: settings.moonMysteryData,
+                moonMysteryData: settings.moonMysteryData.map((item) => [
+                    item.id,
+                    ...item.position,
+                    item.prizeValue,
+                    item.symbol
+                ]),
                 isStickyBonus: settings.isStickyBonus,
                 stickyBonusValue: settings.stickyBonusValue,
                 isAllWild: settings.isAllWild,
@@ -635,7 +696,9 @@ function makeResultJson(gameInstance) {
             }
         };
         gameInstance.sendMessage('ResultData', sendData);
-        console.log(sendData, "send Data");
+        console.log(sendData.GameData.stickyBonusValue, "send Data");
+        console.log(sendData.GameData.isFreeSpin, "send Data");
+        console.log(sendData.GameData.moonMysteryData, "send Data");
     }
     catch (error) {
         console.error("Error generating result JSON or sending message:", error);

@@ -152,7 +152,7 @@ function calculatePayoutOfBonusGame(gameInstance) {
     let totalPayout = 0;
     //handle grand prize
     if ((settings.isGrandPrize)) {
-        const payout = settings.grandMultiplier * settings.currentBet;
+        const payout = settings.grandMultiplier * settings.BetPerLines;
         totalPayout += payout;
     }
     //payout from frozen indices
