@@ -45,6 +45,10 @@ const newGameSchema = new Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  order: {
+    type: Number,
+    required: true
   }
 });
 

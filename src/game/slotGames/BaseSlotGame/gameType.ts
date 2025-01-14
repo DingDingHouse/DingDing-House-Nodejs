@@ -15,7 +15,8 @@ export interface IGame extends Document {
   slug: string;
   payout: Types.ObjectId;
   description: string;
-  createdAt: Date
+  createdAt: Date,
+  order: number
 }
 
 export interface IPlatform extends Document {

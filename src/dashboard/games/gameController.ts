@@ -67,7 +67,7 @@ export class GameController {
               { $match: { name: platform } },
               { $unwind: "$games" },
               { $match: { "games._id": { $in: favoriteGameIds }, "games.status": { $ne: "inactive" } } },
-              { $sort: { "games.createdAt": -1 } },
+              { $sort: { "games.order": 1 } },
               {
                 $group: {
                   _id: "$_id",
@@ -86,7 +86,7 @@ export class GameController {
             const platformDoc = await Platform.aggregate([
               { $match: { name: platform } },
               { $unwind: "$games" },
-              { $sort: { "games.createdAt": -1 } },
+              { $sort: { "games.order": 1 } },
               { $match: { "games.status": { $ne: "inactive" }, ...(category !== "all" ? { "games.category": category } : {}) } },
               {
                 $group: {
@@ -115,7 +115,7 @@ export class GameController {
               $match: category !== "all" ? { name: category } : {},
             },
             { $unwind: "$games" },
-            { $sort: { "games.createdAt": -1 } },
+            { $sort: { "games.order": 1 } },
             {
               $group: {
                 _id: "$_id",
@@ -714,4 +714,38 @@ export class GameController {
   }
 
 
+  // PUT: Update Game Order
+  async updateGameOrder(req: Request, res: Response, next: NextFunction) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const { platformName, gameOrders } = req.body; // Expecting platformName and an array of { gameId, order }
+
+      for (const { gameId, order } of gameOrders) {
+        const platform = await Platform.findOne({ name: platformName, "games._id": gameId });
+
+        if (!platform) {
+          throw createHttpError(404, `Game with ID ${gameId} not found in platform ${platformName}`);
+        }
+
+        const game = platform.games.find((game: any) => game._id.equals(gameId));
+
+        if (game) {
+          game.order = order;
+        }
+
+        await platform.save({ session });
+      }
+
+      await session.commitTransaction();
+      res.status(200).json({ message: "Game orders updated successfully" });
+    } catch (error) {
+      await session.abortTransaction();
+      console.error("Error updating game order:", error);
+      next(error);
+    } finally {
+      session.endSession();
+    }
+  }
 }
