@@ -23,8 +23,13 @@ gameRoutes.get("/platforms", checkUser, checkRole(["admin"]), gameController.get
 // POST : Add a Platform
 gameRoutes.post("/platforms", checkUser, checkRole(["admin"]), gameController.addPlatform)
 
+// PUT : Update Game Order
+gameRoutes.put("/update-game-order", checkUser, gameController.updateGameOrder);
+
 
 gameRoutes.put("/:gameId", upload.fields([{ name: 'thumbnail' }, { name: 'payoutFile' }]), checkUser, checkRole(["admin"]), gameController.updateGame);
+
+
 
 gameRoutes.delete("/:gameId", checkUser, checkRole(["admin"]), gameController.deleteGame);
 gameRoutes.get("/:gameId", validateApiKey, checkUser, checkRole(["player"]), gameController.getGameBySlug);
