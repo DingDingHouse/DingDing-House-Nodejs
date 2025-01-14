@@ -14,7 +14,9 @@ export interface IGame extends Document {
   tagName: string;
   slug: string;
   payout: Types.ObjectId;
-  createdAt: Date
+  description: string;
+  createdAt: Date,
+  order: number
 }
 
 export interface IPlatform extends Document {
@@ -61,7 +63,7 @@ export interface GameData {
   bets: number[]; // Add this line to include bets property
   matrix: { x: number; y: number };
   linesCount: number; // Add this line to include linesCount property
-  betMultiplier:number[]
+  betMultiplier: number[]
 }
 
 
