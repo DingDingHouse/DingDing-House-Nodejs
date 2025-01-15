@@ -21,6 +21,8 @@ gameRoutes.post('/', upload.fields([{ name: 'thumbnail' }, { name: 'payoutFile' 
 gameRoutes.get("/platforms", checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin"]), gameController.getPlatforms);
 // POST : Add a Platform
 gameRoutes.post("/platforms", checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin"]), gameController.addPlatform);
+// PUT : Update Game Order
+gameRoutes.put("/update-game-order", checkUser_1.checkUser, gameController.updateGameOrder);
 gameRoutes.put("/:gameId", upload.fields([{ name: 'thumbnail' }, { name: 'payoutFile' }]), checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin"]), gameController.updateGame);
 gameRoutes.delete("/:gameId", checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin"]), gameController.deleteGame);
 gameRoutes.get("/:gameId", middlware_1.validateApiKey, checkUser_1.checkUser, (0, checkRole_1.checkRole)(["player"]), gameController.getGameBySlug);

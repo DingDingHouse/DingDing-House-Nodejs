@@ -72,7 +72,7 @@ class GameController {
                                 { $match: { name: platform } },
                                 { $unwind: "$games" },
                                 { $match: { "games._id": { $in: favoriteGameIds }, "games.status": { $ne: "inactive" } } },
-                                { $sort: { "games.createdAt": -1 } },
+                                { $sort: { "games.order": 1 } },
                                 {
                                     $group: {
                                         _id: "$_id",
@@ -90,7 +90,7 @@ class GameController {
                             const platformDoc = yield gameModel_1.Platform.aggregate([
                                 { $match: { name: platform } },
                                 { $unwind: "$games" },
-                                { $sort: { "games.createdAt": -1 } },
+                                { $sort: { "games.order": 1 } },
                                 { $match: Object.assign({ "games.status": { $ne: "inactive" } }, (category !== "all" ? { "games.category": category } : {})) },
                                 {
                                     $group: {
@@ -114,7 +114,7 @@ class GameController {
                                 $match: category !== "all" ? { name: category } : {},
                             },
                             { $unwind: "$games" },
-                            { $sort: { "games.createdAt": -1 } },
+                            { $sort: { "games.order": 1 } },
                             {
                                 $group: {
                                     _id: "$_id",
@@ -294,7 +294,8 @@ class GameController {
                     tagName,
                     slug,
                     payout: contentId,
-                    description
+                    description,
+                    order: platform.games.length + 1 // Set the order field
                 };
                 platform.games.push(newGame);
                 yield platform.save({ session });
@@ -580,6 +581,37 @@ class GameController {
             }
             catch (error) {
                 next(error);
+            }
+        });
+    }
+    // PUT: Update Game Order
+    updateGameOrder(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const session = yield mongoose_1.default.startSession();
+            session.startTransaction();
+            try {
+                const { platformName, gameOrders } = req.body; // Expecting platformName and an array of { gameId, order }
+                for (const { gameId, order } of gameOrders) {
+                    const platform = yield gameModel_1.Platform.findOne({ name: platformName, "games._id": gameId });
+                    if (!platform) {
+                        throw (0, http_errors_1.default)(404, `Game with ID ${gameId} not found in platform ${platformName}`);
+                    }
+                    const game = platform.games.find((game) => game._id.equals(gameId));
+                    if (game) {
+                        game.order = order;
+                    }
+                    yield platform.save({ session });
+                }
+                yield session.commitTransaction();
+                res.status(200).json({ message: "Game orders updated successfully" });
+            }
+            catch (error) {
+                yield session.abortTransaction();
+                console.error("Error updating game order:", error);
+                next(error);
+            }
+            finally {
+                session.endSession();
             }
         });
     }

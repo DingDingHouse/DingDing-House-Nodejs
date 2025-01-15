@@ -246,7 +246,7 @@ function checkForWin(gameInstance) {
                 handleStickySymbol(gameInstance);
                 settings.stickyBonusValue[0].value--;
                 freezeSymbolonSpecificIndex(gameInstance);
-                if (settings.stickyBonusValue[0].value < 0) {
+                if (settings.stickyBonusValue[0].value <= 0) {
                     //remove stickyBonusSymbol
                     settings.stickyBonusValue.splice(0, 1);
                     // console.log("After Decrementedto zero:", settings.stickyBonusValue.length);
@@ -259,7 +259,7 @@ function checkForWin(gameInstance) {
             }
             //check for free spin trigger
             const { isFreeSpin } = checkForFreeSpin(gameInstance);
-            if (!isFreeSpin) {
+            if (!settings.freeSpin.useFreeSpin) {
                 // BASE GAME LOGIC: Count occurrences of symbols and calculate payout
                 const validWinSymbols = countOccurenceOfSymbolsAndIndices(gameInstance);
                 validWinSymbols.map(([symbol, matchCount]) => {
@@ -275,22 +275,15 @@ function checkForWin(gameInstance) {
             }
         }
         else {
-            // Handle logic for free spins
-            if (settings.freeSpin.useFreeSpin && settings.freeSpin.freeSpinCount > 0) {
-                settings.freeSpin.freeSpinCount -= 1;
-                if (settings.freeSpin.freeSpinCount <= 0) {
-                    const payoutOfBonusGame = (0, bonus_1.calculatePayoutOfBonusGame)(gameInstance);
-                    // console.log(payoutOfBonusGame, "Payout");
-                    settings.freeSpin.freeSpinPayout = payoutOfBonusGame;
-                    settings.freeSpin.useFreeSpin = false;
-                    settings.frozenIndices = [];
-                    return;
-                }
-            }
             (0, bonus_1.handleBonusGameSpin)(gameInstance);
+            // Handle logic for free spins
+            if (settings.freeSpin.useFreeSpin && settings.freeSpin.freeSpinCount >= 0) {
+                console.log("free");
+                settings.freeSpin.freeSpinCount -= 1;
+            }
         }
         // console.log(gameInstance.settings.bonusSymbolValue, "bonus symbol value");
-        // console.log(gameInstance.settings.stickyBonusValue, "stcky symbol value");
+        // console.log(gameInstance.settings.stickyBonusValue, "stcky symbol value"); 
         // Add free spin payout to total payout
         totalPayout += settings.freeSpin.freeSpinPayout;
         // Update player's current winnings and balance
@@ -306,7 +299,6 @@ function checkForWin(gameInstance) {
         settings.freeSpin.freeSpinsAdded = false;
         gameInstance.settings.bonusSymbolValue = [];
         settings.isGrandPrize = false;
-        settings.moonMysteryData = [];
         settings.isAllWild = false;
     }
     catch (error) {
@@ -696,9 +688,8 @@ function makeResultJson(gameInstance) {
             }
         };
         gameInstance.sendMessage('ResultData', sendData);
-        console.log(sendData.GameData.stickyBonusValue, "send Data");
-        console.log(sendData.GameData.isFreeSpin, "send Data");
-        console.log(sendData.GameData.moonMysteryData, "send Data");
+        console.log(sendData.GameData.BonusResultReel, "Send Data");
+        console.log(sendData, "Send Data");
     }
     catch (error) {
         console.error("Error generating result JSON or sending message:", error);

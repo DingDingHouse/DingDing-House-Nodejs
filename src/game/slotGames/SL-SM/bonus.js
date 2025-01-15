@@ -51,6 +51,15 @@ exports.RandomBonusGenerator = RandomBonusGenerator;
 function handleBonusGameSpin(gameInstance) {
     // generate a random bonus reel matrix based on the current game settings
     new RandomBonusGenerator(gameInstance);
+    if (gameInstance.settings.freeSpin.freeSpinCount <= 0) {
+        const payoutOfBonusGame = calculatePayoutOfBonusGame(gameInstance);
+        // console.log(payoutOfBonusGame, "Payout");
+        gameInstance.settings.freeSpin.freeSpinPayout = payoutOfBonusGame;
+        gameInstance.settings.freeSpin.useFreeSpin = false;
+        gameInstance.settings.frozenIndices = [];
+        gameInstance.settings.moonMysteryData = [];
+        gameInstance.settings.bonusResultMatrix = [];
+    }
     const { settings } = gameInstance;
     // handle bonus symbol occurrences in the bonus game
     checkOcurrenceOfSymbols(gameInstance);
@@ -61,6 +70,7 @@ function handleBonusGameSpin(gameInstance) {
         settings.freeSpin.freeSpinCount = 0;
         settings.freeSpin.useFreeSpin = false;
         settings.freeSpin.freeSpinsAdded = false;
+        settings.isGrandPrize = false;
     }
 }
 /**

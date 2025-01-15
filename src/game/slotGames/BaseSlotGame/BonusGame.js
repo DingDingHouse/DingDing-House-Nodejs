@@ -47,23 +47,28 @@ class BonusGame {
     setRandomStopIndex() {
         let amount = 0;
         console.log("bonus: ", this.parent.settings.currentGamedata.bonus);
-        if (this.parent.settings.bonus.start && this.parent.settings.currentGamedata.bonus.type == gameUtils_1.bonusGameType.spin) {
-            this.parent.settings.bonus.stopIndex = this.getRandomPayoutIndex(this.parent.settings.currentGamedata.bonus.payOutProb);
-            amount = this.parent.settings.BetPerLines * this.result[this.parent.settings.bonus.stopIndex];
-            return amount;
-        }
-        else if (this.parent.settings.bonus.start && this.parent.settings.currentGamedata.bonus.type == gameUtils_1.bonusGameType.tap) {
-            for (let index = 0; index < this.result.length; index++) {
-                if (this.result[index] == 0)
-                    break;
-                else
-                    amount += this.parent.settings.BetPerLines * this.result[index];
+        if (this.parent.settings.bonus.start) {
+            const bonusType = this.parent.settings.currentGamedata.bonus.type;
+            const betPerLine = this.parent.settings.BetPerLines;
+            const result = this.result;
+            if (bonusType === gameUtils_1.bonusGameType.spin) {
+                this.parent.settings.bonus.stopIndex = this.getRandomPayoutIndex(this.parent.settings.currentGamedata.bonus.payOutProb);
+                amount = betPerLine * result[this.parent.settings.bonus.stopIndex];
                 return amount;
             }
-        }
-        else if (this.parent.settings.bonus.start && this.parent.settings.currentGamedata.bonus.type == "slot") {
-            for (let index = 1; index < 4; index++) {
-                amount += this.parent.settings.BetPerLines * this.result[this.result.length - index];
+            else if (bonusType === gameUtils_1.bonusGameType.tap) {
+                for (let index = 0; index < result.length; index++) {
+                    if (result[index] === 0)
+                        break;
+                    amount += betPerLine * result[index];
+                }
+                return amount;
+            }
+            else if (bonusType === "slot") {
+                // Slot bonus type
+                for (let index = 1; index <= 3; index++) {
+                    amount += betPerLine * result[result.length - index];
+                }
                 return amount;
             }
         }

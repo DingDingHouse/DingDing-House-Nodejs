@@ -278,10 +278,10 @@ function checkForFreeSpin(gameInstance) {
     try {
         // Find positions of Free Spin symbols in the result matrix
         const freeSpinsSymbol = findSymbol(gameInstance, types_1.specialIcons.freeSpin);
-        if (freeSpinsSymbol.length > (5 - settings.freeSpin.freeSpinMuiltiplier.length)) {
-            console.log("!!! FREE SPIN AWARDED !!!");
+        if (freeSpinsSymbol.length > (5 - settings.freeSpin.freeSpinMuiltiplier.length) && freeSpinsSymbol.length <= 5) {
+            // console.log("!!! FREE SPIN AWARDED !!!");
             const freeSpins = accessData(settings.freeSpin.SymbolID, freeSpinsSymbol.length, gameInstance);
-            console.log(freeSpins, 'freeSpins');
+            // console.log(freeSpins, 'freeSpins')
             settings.freeSpin.freeSpinStarted = true;
             settings.freeSpin.freeSpinsAdded = true;
             settings.freeSpin.freeSpinCount += freeSpins;
@@ -289,7 +289,18 @@ function checkForFreeSpin(gameInstance) {
             // uncomment only for testing purpose 
             // playerData.rtpSpinCount += freeSpins;
             settings.freeSpin.jokerSymbols.push(freeSpinsSymbol);
-            return;
+        }
+        else if (freeSpinsSymbol.length > 5) {
+            // console.log("!!! FREE SPIN AWARDED !!!");
+            const freeSpins = accessData(settings.freeSpin.SymbolID, 5, gameInstance);
+            // console.log(freeSpins, 'freeSpins')
+            settings.freeSpin.freeSpinStarted = true;
+            settings.freeSpin.freeSpinsAdded = true;
+            settings.freeSpin.freeSpinCount += freeSpins;
+            playerData.totalSpin += freeSpins;
+            // uncomment only for testing purpose 
+            // playerData.rtpSpinCount += freeSpins;
+            settings.freeSpin.jokerSymbols.push(freeSpinsSymbol);
         }
     }
     catch (error) {

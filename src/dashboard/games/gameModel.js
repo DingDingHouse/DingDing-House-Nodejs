@@ -69,6 +69,10 @@ const newGameSchema = new mongoose_1.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    order: {
+        type: Number,
+        required: true
     }
 });
 const PlatformSchema = new mongoose_1.Schema({
