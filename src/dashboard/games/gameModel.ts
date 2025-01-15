@@ -1,8 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { IPlatform } from "../../game/slotGames/BaseSlotGame/gameType";
 
-
-
 const newGameSchema = new Schema({
   name: {
     type: String,
@@ -41,9 +39,16 @@ const newGameSchema = new Schema({
     required: true,
     ref: 'Payout'
   },
+  description: {
+    type: String,
+  },
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  order: {
+    type: Number,
+    required: true
   }
 });
 
