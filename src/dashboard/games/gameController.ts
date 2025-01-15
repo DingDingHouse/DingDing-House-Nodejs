@@ -343,7 +343,8 @@ export class GameController {
         tagName,
         slug,
         payout: contentId,
-        description
+        description,
+        order: platform.games.length + 1 // Set the order field
       };
 
 
