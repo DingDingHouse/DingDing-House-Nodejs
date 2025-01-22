@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SLPB = void 0;
+const sessionManager_1 = require("../../../dashboard/session/sessionManager");
 const RandomResultGenerator_1 = require("../RandomResultGenerator");
 const helper_1 = require("./helper");
 class SLPB {
@@ -81,6 +82,7 @@ class SLPB {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const playerData = this.getPlayerData();
+                const platformSession = sessionManager_1.sessionManager.getPlayerPlatform(playerData.username);
                 if (this.settings.currentBet > playerData.credits) {
                     console.log(this.settings.currentBet + playerData.credits);
                     this.sendError("Low Balance");
@@ -90,8 +92,14 @@ class SLPB {
                     yield this.deductPlayerBalance(this.settings.currentBet);
                     this.playerData.totalbet += this.settings.currentBet;
                 }
+                const spinId = platformSession.currentGameSession.createSpin();
+                platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
                 yield new RandomResultGenerator_1.RandomResultGenerator(this);
                 (0, helper_1.checkForWin)(this);
+                const winAmount = this.playerData.currentWining;
+                console.log(winAmount, 'GAURAV');
+                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
+                this.playerData.currentWining = 0;
             }
             catch (error) {
                 this.sendError("Spin error");

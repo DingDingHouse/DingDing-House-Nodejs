@@ -346,7 +346,7 @@ function checkForWin(gameInstance) {
             settings.freeSpinIndices = [];
         }
         // Reset properties after result processing
-        gameInstance.playerData.currentWining = 0;
+        // gameInstance.playerData.currentWining = 0;
         gameInstance.settings._winData.winningLines = [];
         gameInstance.settings._winData.winningSymbols = [];
         settings.freeSpin.freeSpinsAdded = false;
