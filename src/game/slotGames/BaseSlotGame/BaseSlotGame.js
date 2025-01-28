@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -11,12 +44,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const sessionManager_1 = require("../../../dashboard/session/sessionManager");
 const gameUtils_1 = require("../../Utils/gameUtils");
-const SlotUtils_1 = require("../../Utils/SlotUtils");
 const RandomResultGenerator_1 = require("../RandomResultGenerator");
 const BonusGame_1 = require("./BonusGame");
 const CheckResult_1 = require("./CheckResult");
 const newGambleGame_1 = require("./newGambleGame");
 const WinData_1 = require("./WinData");
+const child_process_1 = require("child_process");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const XLSX = __importStar(require("xlsx"));
 class BaseSlotGame {
     constructor(currentGameData) {
         this.currentGameData = currentGameData;
@@ -151,9 +187,6 @@ class BaseSlotGame {
                 this.settings.currentBet =
                     this.settings.currentGamedata.bets[response.data.currentBet] * this.settings.currentLines;
                 this.getRTP(response.data.spins);
-                break;
-            case "checkMoolah":
-                this.checkforMoolah();
                 break;
             case "GambleInit":
                 this.settings.gamble.resetGamble();
@@ -339,70 +372,68 @@ class BaseSlotGame {
         });
     }
     getRTP(spins) {
-        try {
-            let spend = 0;
-            let won = 0;
-            this.playerData.rtpSpinCount = spins;
-            for (let i = 0; i < this.playerData.rtpSpinCount; i++) {
-                this.spinResult();
-                spend += this.settings.currentBet;
-                won = this.settings._winData.totalWinningAmount;
-            }
-            let rtp = 0;
-            if (spend > 0) {
-                rtp = won / spend;
-            }
-            return;
-        }
-        catch (error) {
-            console.error("Failed to calculate RTP:", error);
-            this.sendError("RTP calculation error");
-        }
-    }
-    checkforMoolah() {
-        try {
-            this.settings.tempReels = this.settings.reels;
-            const lastWinData = this.settings._winData;
-            lastWinData.winningSymbols = (0, SlotUtils_1.combineUniqueSymbols)((0, SlotUtils_1.removeRecurringIndexSymbols)(lastWinData.winningSymbols));
-            const index = lastWinData.winningSymbols.map((str) => {
-                const index = str.split(",").map(Number);
-                return index;
-            });
-            let matrix = [];
-            matrix = this.settings.resultSymbolMatrix;
-            index.forEach((element) => {
-                matrix[element[1]][element[0]] = null;
-            });
-            const movedArray = (0, SlotUtils_1.cascadeMoveTowardsNull)(matrix);
-            let transposed = (0, SlotUtils_1.transposeMatrix)(movedArray);
-            let iconsToFill = [];
-            for (let i = 0; i < transposed.length; i++) {
-                let row = [];
-                for (let j = 0; j < transposed[i].length; j++) {
-                    if (transposed[i][j] == null) {
-                        let index = (this.settings.resultReelIndex[i] + j + 2) %
-                            this.settings.tempReels[i].length;
-                        transposed[i][j] = this.settings.tempReels[i][index];
-                        row.unshift(this.settings.tempReels[i][index]);
-                        this.settings.tempReels[i].splice(j, 1);
-                    }
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                let spend = 0;
+                let won = 0;
+                this.playerData.rtpSpinCount = spins;
+                for (let i = 0; i < this.playerData.rtpSpinCount; i++) {
+                    yield this.spinResult();
+                    spend = this.playerData.totalbet;
+                    won = this.playerData.haveWon;
+                    console.log(`Spin ${i + 1} completed. ${this.playerData.totalbet} , ${won}`);
                 }
-                if (row.length > 0)
-                    iconsToFill.push(row);
+                let rtp = 0;
+                if (spend > 0) {
+                    rtp = won / spend;
+                }
+                console.log('RTP calculated:', this.currentGameData.gameId, spins, rtp * 100 + '%');
+                const now = new Date();
+                // Store the data in an Excel file
+                const date = now.toISOString().split('T')[0];
+                const filePath = path.resolve(__dirname, '../../../../..', `simulator${date}.xlsx`);
+                const newData = {
+                    username: this.currentGameData.username,
+                    gameId: this.currentGameData.gameId,
+                    spins,
+                    rtp: rtp * 100,
+                    date: new Date().toISOString()
+                };
+                let workbook;
+                if (fs.existsSync(filePath)) {
+                    workbook = XLSX.readFile(filePath);
+                }
+                else {
+                    workbook = XLSX.utils.book_new();
+                }
+                let worksheet = workbook.Sheets['RTP Data'];
+                if (!worksheet) {
+                    worksheet = XLSX.utils.json_to_sheet([]);
+                    XLSX.utils.book_append_sheet(workbook, worksheet, 'RTP Data');
+                }
+                const existingData = XLSX.utils.sheet_to_json(worksheet);
+                existingData.push(newData);
+                const updatedWorksheet = XLSX.utils.json_to_sheet(existingData);
+                workbook.Sheets['RTP Data'] = updatedWorksheet;
+                XLSX.writeFile(workbook, filePath);
+                // Restart the server using pm2
+                (0, child_process_1.exec)('pm2 restart my-server', (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Error restarting server: ${error.message}`);
+                        return;
+                    }
+                    if (stderr) {
+                        console.error(`stderr: ${stderr}`);
+                        return;
+                    }
+                    console.log(`stdout: ${stdout}`);
+                });
             }
-            matrix = (0, SlotUtils_1.transposeMatrix)(transposed);
-            this.settings.resultSymbolMatrix = matrix;
-            // tempGame.
-            const result = new CheckResult_1.CheckResult(this);
-            result.makeResultJson(gameUtils_1.ResultType.moolah, iconsToFill);
-            this.settings._winData.winningSymbols = [];
-            this.settings.tempReels = [];
-        }
-        catch (error) {
-            console.error("Failed to check for Moolah:", error);
-            this.sendError("Moolah check error");
-            return error;
-        }
+            catch (error) {
+                console.error("Failed to calculate RTP:", error);
+                this.sendError("RTP calculation error");
+            }
+        });
     }
 }
 exports.default = BaseSlotGame;

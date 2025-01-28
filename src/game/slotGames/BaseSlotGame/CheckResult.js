@@ -63,16 +63,18 @@ class CheckResult {
             if (this.currentGame.settings.currentGamedata.bonus.type == gameUtils_1.bonusGameType.miniSpin) {
                 const betPerLines = this.currentGame.settings.BetPerLines;
                 this.currentGame.settings.currentGamedata.bonus.noOfItem = temp.length;
-                const result = (0, BonusGame_1.runMiniSpin)(this.currentGame.settings.currentGamedata.bonus, betPerLines);
+                const result = (0, BonusGame_1.runMiniSpin)(this.currentGame.settings.currentGamedata.bonus, this.currentGame.settings.bonus.symbolCount, betPerLines);
                 this.bonusResult = result;
                 this.currentGame.settings._winData.totalWinningAmount += result.totalWinAmount;
                 this.currentGame.settings._winData.specialFeatures.bonus.amountWon = result.totalWinAmount;
             }
             if (this.currentGame.settings.currentGamedata.bonus.type == gameUtils_1.bonusGameType.layerTap) {
+                console.log('TRIGRED');
                 const result = this.currentGame.settings.bonus.game.setRandomStopIndex(this.bonusResult);
+                console.log(result);
                 this.currentGame.settings._winData.totalWinningAmount += result.amount;
                 this.bonusResult = result.selectedIndex;
-                this.currentGame.settings._winData.specialFeatures.bonus.amountWon = result.amount;
+                console.log(this.bonusResult, 'this.bonusResult');
             }
         }
     }
@@ -237,7 +239,6 @@ class CheckResult {
             if (temp.length > (5 - this.currentGame.settings.scatter.multiplier.length) && temp.length <= 5) {
                 // console.log(temp.length,"dnbdjbjjd");
                 const winningAmount = this.accessData(this.currentGame.settings.scatter.symbolID, temp.length);
-                this.currentGame.settings._winData.specialFeatures.scatter.amountWon = winningAmount * this.currentGame.settings.BetPerLines;
                 this.currentGame.settings._winData.totalWinningAmount += winningAmount * this.currentGame.settings.BetPerLines;
                 this.currentGame.settings._winData.winningSymbols.push(temp);
             }

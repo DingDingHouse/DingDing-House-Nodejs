@@ -61,7 +61,6 @@ function handleBonusGameSpin(gameInstance) {
         settings.thunderBonus.thunderSpinCount = 0;
         settings.thunderBonus.isThunderBonus = false;
         settings.thunderBonus.thunderSpinsAdded = false;
-        gameInstance.playerData.currentWining += payoutOfBonusGame;
     }
 }
 /**
@@ -152,7 +151,7 @@ function calculatePayoutOfBonusGame(gameInstance) {
     let totalPayout = 0;
     //handle grand prize
     if ((settings.isGrandPrize)) {
-        const payout = settings.grandMultiplier * settings.BetPerLines;
+        const payout = settings.grandMultiplier * settings.currentBet;
         totalPayout += payout;
     }
     //payout from frozen indices

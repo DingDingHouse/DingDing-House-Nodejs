@@ -111,10 +111,14 @@ class PlayerSocket {
     }
     // Handle platform disconnection and reconnection
     handlePlatformDisconnection() {
+        if (process.env.NODE_ENV == "testing")
+            return;
         this.attemptReconnection(this.platformData);
     }
     // Handle game disconnection and reconnection
     handleGameDisconnection() {
+        if (process.env.NODE_ENV == "testing")
+            return;
         this.attemptReconnection(this.gameData);
     }
     // Cleanup only the game socket
@@ -229,6 +233,7 @@ class PlayerSocket {
             this.initializeGameSocket(socket);
             const credits = yield (0, gameUtils_1.getPlayerCredits)(this.playerData.username);
             this.playerData.credits = typeof credits === "number" ? credits : 0;
+            // this.sendMessage("connected-With", this.playerData.username, true);
         });
     }
     initGameData() {
