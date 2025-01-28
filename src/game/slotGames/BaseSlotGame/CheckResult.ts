@@ -67,16 +67,14 @@ export class CheckResult {
         console.log("_____________RESULT_END________________");
     }
 
-    private checkForBonus() {
+     private checkForBonus() {
         if (!this.currentGame.settings.currentGamedata.bonus.isEnabled) return;
         if (this.currentGame.settings.freeSpin.freeSpinStarted) return
 
         let temp = this.findSymbol(specialIcons.bonus);
 
 
-
-        if (this.currentGame.settings.bonus.symbolCount <= temp.length) {
-
+        if (temp.length >= this.currentGame.settings.bonus.symbolCount) {
             this.currentGame.settings._winData.winningSymbols.push(temp);
             this.currentGame.settings.bonus.start = true;
             this.currentGame.settings.noOfBonus++;
@@ -85,15 +83,9 @@ export class CheckResult {
             if (this.currentGame.settings.currentGamedata.bonus.type == bonusGameType.tap) {
                 this.bonusResult = this.currentGame.settings.bonus.game.generateData();
                 this.currentGame.settings._winData.totalWinningAmount += this.currentGame.settings.bonus.game.setRandomStopIndex();
-
-                this.currentGame.settings._winData.specialFeatures.bonus.amountWon = this.currentGame.settings.bonus.game.setRandomStopIndex();
             }
-
-            if (this.currentGame.settings.currentGamedata.bonus.type == bonusGameType.spin) {
+            if (this.currentGame.settings.currentGamedata.bonus.type == bonusGameType.spin)
                 this.currentGame.settings._winData.totalWinningAmount += this.currentGame.settings.bonus.game.setRandomStopIndex();
-
-                this.currentGame.settings._winData.specialFeatures.bonus.amountWon = this.currentGame.settings.bonus.game.setRandomStopIndex();
-            }
 
             //NOTE: minispin for fruity cocktail
             if (this.currentGame.settings.currentGamedata.bonus.type == bonusGameType.miniSpin) {
@@ -103,17 +95,14 @@ export class CheckResult {
                 const result = runMiniSpin(this.currentGame.settings.currentGamedata.bonus, this.currentGame.settings.bonus.symbolCount, betPerLines);
                 this.bonusResult = result
                 this.currentGame.settings._winData.totalWinningAmount += result.totalWinAmount;
-
-                this.currentGame.settings._winData.specialFeatures.bonus.amountWon = result.totalWinAmount;
             }
-
             if (this.currentGame.settings.currentGamedata.bonus.type == bonusGameType.layerTap) {
-                console.log('TRIGRED')
+                // console.log('TRIGRED')
                 const result = this.currentGame.settings.bonus.game.setRandomStopIndex(this.bonusResult);
                 console.log(result)
                 this.currentGame.settings._winData.totalWinningAmount += result.amount;
                 this.bonusResult = result.selectedIndex
-                console.log(this.bonusResult, 'this.bonusResult')
+                // console.log(this.bonusResult, 'this.bonusResult')
             }
 
         }
