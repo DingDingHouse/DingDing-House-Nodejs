@@ -173,11 +173,11 @@ export class UserController {
       const token = jwt.sign(
         { id: user._id, username: user.username, role: user.role },
         config.jwtSecret!,
-        { expiresIn: "1m" }
+        { expiresIn: "7d" }
       );
 
       res.cookie("userToken", token, {
-        maxAge: 1000 * 60,
+        maxAge: 1000 * 60 * 60 * 24 * 7,
         httpOnly: true,
         sameSite: "none",
       });
