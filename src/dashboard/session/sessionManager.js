@@ -97,30 +97,35 @@ class SessionManager {
     }
     notifyManagers(managerName, eventType, payload) {
         return __awaiter(this, void 0, void 0, function* () {
-            const admin = this.getActiveManagerByRole('admin');
-            if (admin) {
-                admin.notifyManager({ type: eventType, payload });
-            }
-            const manager = yield userModel_1.User.findOne({ username: managerName }).exec();
-            if (manager.role === 'store') {
-                // Get top hierarchy user until company and notify company, store, and admin
-                const topUser = yield this.getTopUserUntilCompany(manager.username);
-                if (topUser) {
-                    const companyManager = this.getActiveManagerByUsername(topUser.username);
-                    if (companyManager) {
-                        companyManager.notifyManager({ type: eventType, payload });
+            try {
+                const admin = this.getActiveManagerByRole('admin');
+                if (admin) {
+                    admin.notifyManager({ type: eventType, payload });
+                }
+                const manager = yield userModel_1.User.findOne({ username: managerName }).exec();
+                if (manager.role === 'store') {
+                    // Get top hierarchy user until company and notify company, store, and admin
+                    const topUser = yield this.getTopUserUntilCompany(manager.username);
+                    if (topUser) {
+                        const companyManager = this.getActiveManagerByUsername(topUser.username);
+                        if (companyManager) {
+                            companyManager.notifyManager({ type: eventType, payload });
+                        }
+                    }
+                    const storeManager = this.getActiveManagerByUsername(manager.username);
+                    if (storeManager) {
+                        storeManager.notifyManager({ type: eventType, payload });
                     }
                 }
-                const storeManager = this.getActiveManagerByUsername(manager.username);
-                if (storeManager) {
-                    storeManager.notifyManager({ type: eventType, payload });
+                else {
+                    const company = this.getActiveManagerByUsername(manager.username);
+                    if (company) {
+                        company.notifyManager({ type: eventType, payload });
+                    }
                 }
             }
-            else {
-                const company = this.getActiveManagerByUsername(manager.username);
-                if (company) {
-                    company.notifyManager({ type: eventType, payload });
-                }
+            catch (error) {
+                console.error('Failed to notify managers', error);
             }
         });
     }
