@@ -328,7 +328,7 @@ class UserController {
                 }
                 // If the user is not an admin, fetch all direct and indirect subordinates
                 if (!(0, permissions_1.isAdmin)(currentUser)) {
-                    const allSubordinateIds = yield this.userService.getAllSubordinateIds(currentUser._id, currentUser.role);
+                    const allSubordinateIds = yield this.userService.getAllSubordinateIds(currentUser._id);
                     query._id = { $in: allSubordinateIds };
                 }
                 // Aggregation pipeline for User collection
@@ -782,6 +782,7 @@ class UserController {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b, _c, _d;
             try {
+                console.log("GET REPORT");
                 const _req = req;
                 const { username, role } = _req.user;
                 const { type, userId } = req.query;
@@ -801,92 +802,110 @@ class UserController {
                     }
                     targetUser = subordinate;
                 }
-                if (targetUser.role === "admin") {
-                    // Total Recharge Amount
+                if (targetUser.role === "admin" || targetUser.role === "supermaster") {
+                    const subordinateIds = (yield targetUser.role) === "supermaster" ? yield this.userService.getAllSubordinateIds(targetUser._id) : [];
+                    // For admin/supermaster - get all subordinate transactions
                     const totalRechargedAmt = yield transactionModel_1.default.aggregate([
                         {
                             $match: {
                                 $and: [
-                                    {
-                                        createdAt: {
-                                            $gte: start,
-                                            $lte: end,
-                                        },
-                                    },
-                                    {
-                                        type: "recharge",
-                                    },
-                                ],
-                            },
+                                    { createdAt: { $gte: start, $lte: end } },
+                                    { type: "recharge" },
+                                    ...(targetUser.role === "supermaster" ? [{
+                                            $or: [
+                                                { creditor: targetUser.username }, // Credits given by supermaster
+                                                { debtor: targetUser.username }, // Credits received by supermaster
+                                                { creditor: { $in: subordinateIds.map(id => id.toString()) } }, // Credits given by subordinates
+                                                { debtor: { $in: subordinateIds.map(id => id.toString()) } } // Credits received by subordinates
+                                            ]
+                                        }] : []) // For admin, no additional filters to get all transactions
+                                ]
+                            }
                         },
                         {
                             $group: {
                                 _id: null,
-                                totalAmount: {
-                                    $sum: "$amount",
-                                },
-                            },
-                        },
+                                totalAmount: { $sum: "$amount" }
+                            }
+                        }
                     ]);
                     // Total Redeem Amount
                     const totalRedeemedAmt = yield transactionModel_1.default.aggregate([
                         {
                             $match: {
                                 $and: [
-                                    {
-                                        createdAt: {
-                                            $gte: start,
-                                            $lte: end,
-                                        },
-                                    },
-                                    {
-                                        type: "redeem",
-                                    },
-                                ],
-                            },
+                                    { createdAt: { $gte: start, $lte: end } },
+                                    { type: "redeem" },
+                                    ...(targetUser.role === "supermaster" ? [{
+                                            $or: [
+                                                { creditor: targetUser.username }, // Redeem received by supermaster
+                                                { debtor: targetUser.username }, // Redeem given by supermaster
+                                                { creditor: { $in: subordinateIds.map(id => id.toString()) } }, // Redeem received by subordinates
+                                                { debtor: { $in: subordinateIds.map(id => id.toString()) } } // Redeem given by subordinates
+                                            ]
+                                        }] : [])
+                                ]
+                            }
                         },
                         {
                             $group: {
                                 _id: null,
-                                totalAmount: {
-                                    $sum: "$amount",
-                                },
-                            },
-                        },
+                                totalAmount: { $sum: "$amount" }
+                            }
+                        }
                     ]);
-                    const users = yield userModel_1.User.aggregate([
+                    const userMatch = targetUser.role === "supermaster" ?
                         {
-                            $match: {
-                                $and: [
-                                    {
-                                        role: { $ne: targetUser.role },
-                                    },
-                                    {
-                                        createdAt: { $gte: start, $lte: end },
-                                    },
-                                ],
-                            },
-                        },
+                            $and: [
+                                { role: { $ne: "admin" } },
+                                { createdAt: { $gte: start, $lte: end } },
+                                { createdBy: targetUser._id }, // Only direct subordinates
+                                { _id: { $in: subordinateIds } } // Only users in the hierarchy chain
+                            ]
+                        } :
+                        {
+                            $and: [
+                                { role: { $ne: "admin" } },
+                                { createdAt: { $gte: start, $lte: end } }
+                            ]
+                        };
+                    const users = yield userModel_1.User.aggregate([
+                        { $match: userMatch },
                         {
                             $group: {
                                 _id: "$role",
-                                count: { $sum: 1 },
-                            },
-                        },
+                                count: { $sum: 1 }
+                            }
+                        }
                     ]);
-                    const players = yield userModel_1.Player.countDocuments({
-                        role: "player",
-                        createdAt: { $gte: start, $lte: end },
-                    });
+                    const playerMatch = targetUser.role === "supermaster" ?
+                        {
+                            role: "player",
+                            createdAt: { $gte: start, $lte: end },
+                            createdBy: { $in: subordinateIds }
+                        } :
+                        {
+                            role: "player",
+                            createdAt: { $gte: start, $lte: end }
+                        };
+                    const players = yield userModel_1.Player.countDocuments(playerMatch);
                     const counts = users.reduce((acc, curr) => {
                         acc[curr._id] = curr.count;
                         return acc;
                     }, {});
                     counts["player"] = players;
-                    // Transactions
-                    const transactions = yield transactionModel_1.default.find({
-                        createdAt: { $gte: start, $lte: end },
-                    })
+                    const transactionMatch = targetUser.role === "supermaster" ?
+                        {
+                            createdAt: { $gte: start, $lte: end },
+                            $or: [
+                                { creditor: targetUser.username },
+                                { debtor: targetUser.username },
+                                { "creditorDetails.createdBy": { $in: subordinateIds } },
+                                { "debtorDetails.createdBy": { $in: subordinateIds } }
+                            ]
+                        } :
+                        { createdAt: { $gte: start, $lte: end } };
+                    const transactions = yield transactionModel_1.default.find(transactionMatch)
                         .sort({ createdAt: -1 })
                         .limit(9);
                     return res.status(200).json({
@@ -896,7 +915,7 @@ class UserController {
                         recharge: ((_a = totalRechargedAmt[0]) === null || _a === void 0 ? void 0 : _a.totalAmount) || 0,
                         redeem: ((_b = totalRedeemedAmt[0]) === null || _b === void 0 ? void 0 : _b.totalAmount) || 0,
                         users: counts,
-                        transactions: transactions,
+                        transactions
                     });
                 }
                 else {
@@ -905,123 +924,96 @@ class UserController {
                             {
                                 $match: {
                                     $and: [
-                                        {
-                                            createdAt: {
-                                                $gte: start,
-                                                $lte: end,
-                                            },
-                                        },
-                                        {
-                                            type: "recharge",
-                                        },
-                                        {
-                                            debtor: targetUser.username,
-                                        }
-                                    ],
-                                },
+                                        { createdAt: { $gte: start, $lte: end } },
+                                        { type: "recharge" },
+                                        { creditor: targetUser.username } // Changed from debtor to creditor
+                                    ]
+                                }
                             },
                             {
                                 $group: {
                                     _id: null,
-                                    totalAmount: { $sum: "$amount" },
-                                },
-                            },
+                                    totalAmount: { $sum: "$amount" }
+                                }
+                            }
                         ]),
                         transactionModel_1.default.aggregate([
                             {
                                 $match: {
                                     $and: [
-                                        {
-                                            createdAt: {
-                                                $gte: start,
-                                                $lte: end,
-                                            },
-                                        },
-                                        {
-                                            type: "redeem",
-                                        },
-                                        {
-                                            creditor: targetUser.username,
-                                        }
-                                    ],
-                                },
+                                        { createdAt: { $gte: start, $lte: end } },
+                                        { type: "redeem" },
+                                        { debtor: targetUser.username }
+                                    ]
+                                }
                             },
                             {
                                 $group: {
                                     _id: null,
-                                    totalAmount: { $sum: "$amount" },
-                                },
-                            },
+                                    totalAmount: { $sum: "$amount" }
+                                }
+                            }
                         ]),
                         transactionModel_1.default.find({
                             $or: [
                                 { debtor: targetUser.username },
-                                { creditor: targetUser.username },
+                                { creditor: targetUser.username }
                             ],
-                            createdAt: { $gte: start, $lte: end },
-                        })
-                            .sort({ createdAt: -1 }),
+                            createdAt: { $gte: start, $lte: end }
+                        }).sort({ createdAt: -1 }),
                         (targetUser.role === "store" || targetUser.role === "player") ?
                             userModel_1.Player.aggregate([
                                 {
                                     $match: {
                                         $and: [
-                                            {
-                                                createdBy: targetUser._id,
-                                            },
-                                            {
-                                                createdAt: { $gte: start, $lte: end },
-                                            }
-                                        ],
-                                    },
+                                            { createdBy: targetUser._id },
+                                            { createdAt: { $gte: start, $lte: end } }
+                                        ]
+                                    }
                                 },
                                 {
                                     $group: {
-                                        _id: "$status",
-                                        count: { $sum: 1 },
-                                    },
-                                },
+                                        _id: "$role",
+                                        count: { $sum: 1 }
+                                    }
+                                }
                             ]) :
                             userModel_1.User.aggregate([
                                 {
                                     $match: {
                                         $and: [
-                                            {
-                                                createdBy: targetUser._id,
-                                            },
-                                            {
-                                                createdAt: { $gte: start, $lte: end },
-                                            }
-                                        ],
-                                    },
+                                            { createdBy: targetUser._id },
+                                            { createdAt: { $gte: start, $lte: end } }
+                                        ]
+                                    }
                                 },
                                 {
                                     $group: {
-                                        _id: "$status",
-                                        count: { $sum: 1 },
-                                    },
-                                },
+                                        _id: "$role",
+                                        count: { $sum: 1 }
+                                    }
+                                }
                             ])
                     ]);
+                    console.log("USER TRANSACTIONS", userTransactions);
+                    console.log('Debug recharge transactions:', yield transactionModel_1.default.find({
+                        type: "recharge",
+                        debtor: targetUser.username,
+                        createdAt: { $gte: start, $lte: end }
+                    }));
                     const counts = users.reduce((acc, curr) => {
-                        if (curr._id === "active") {
-                            acc.active += curr.count;
-                        }
-                        else {
-                            acc.inactive += curr.count;
-                        }
+                        acc[curr._id] = curr.count;
                         return acc;
-                    }, { active: 0, inactive: 0 });
-                    const result = {
+                    }, {});
+                    return res.status(200).json({
                         username: targetUser.username,
                         credits: targetUser.credits,
                         role: targetUser.role,
                         recharge: ((_c = userRechargeAmt[0]) === null || _c === void 0 ? void 0 : _c.totalAmount) || 0,
                         redeem: ((_d = userRedeemAmt[0]) === null || _d === void 0 ? void 0 : _d.totalAmount) || 0,
                         users: counts,
-                        transactions: userTransactions,
-                    };
-                    return res.status(200).json(result);
+                        transactions: userTransactions
+                    });
                 }
             }
             catch (error) {

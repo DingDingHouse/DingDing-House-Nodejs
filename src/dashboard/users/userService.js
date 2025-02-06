@@ -88,32 +88,22 @@ class UserService {
         }
         return arr.join("");
     }
-    getAllSubordinateIds(userId, role) {
+    getAllSubordinateIds(userId) {
         return __awaiter(this, void 0, void 0, function* () {
-            let allSubordinateIds = [];
-            if (role === "store") {
-                // Fetch subordinates from the Player collection
-                const directSubordinates = yield userModel_1.Player.find({ createdBy: userId }, { _id: 1 });
-                const directSubordinateIds = directSubordinates.map(sub => sub._id);
-                allSubordinateIds = [...directSubordinateIds];
+            const directSubordinates = yield userModel_1.User.find({ createdBy: userId });
+            const directPlayers = yield userModel_1.Player.find({ createdBy: userId });
+            let allSubordinateIds = [userId];
+            // Add direct subordinate IDs with proper typing
+            const subordinateIds = directSubordinates.map(s => s._id);
+            const playerIds = directPlayers.map(p => p._id);
+            allSubordinateIds = [...allSubordinateIds, ...subordinateIds, ...playerIds];
+            // Recursively get subordinates of subordinates
+            for (const subordinate of directSubordinates) {
+                const subSubordinates = yield this.getAllSubordinateIds(subordinate._id);
+                allSubordinateIds = [...allSubordinateIds, ...subSubordinates];
             }
-            else {
-                // Fetch subordinates from the User collection
-                const directSubordinates = yield userModel_1.User.find({ createdBy: userId }, { _id: 1, role: 1 });
-                const directSubordinateIds = directSubordinates.map(sub => sub._id);
-                allSubordinateIds = [...directSubordinateIds];
-                // If the role is company, also fetch subordinates from the Player collection
-                if (role === "supermaster") {
-                    const directPlayerSubordinates = yield userModel_1.Player.find({ createdBy: userId }, { _id: 1 });
-                    const directPlayerSubordinateIds = directPlayerSubordinates.map(sub => sub._id);
-                    allSubordinateIds = [...allSubordinateIds, ...directPlayerSubordinateIds];
-                }
-                for (const sub of directSubordinates) {
-                    const subSubordinateIds = yield this.getAllSubordinateIds(sub._id, sub.role);
-                    allSubordinateIds = [...allSubordinateIds, ...subSubordinateIds];
-                }
-            }
-            return allSubordinateIds;
+            // Remove duplicates and ensure type
+            return Array.from(new Set(allSubordinateIds));
         });
     }
 }
