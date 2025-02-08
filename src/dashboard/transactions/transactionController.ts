@@ -61,6 +61,8 @@ export class TransactionController {
       const filter = req.query.filter || "";
       const sortOrder = req.query.sort === "desc" ? -1 : 1;
       const typeQuery = req.query.type as string;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
 
 
       let parsedData: QueryParams = {
@@ -87,6 +89,36 @@ export class TransactionController {
       }
 
       let query: any = {};
+
+      // Handle date range filtering
+      if (startDate || endDate) {
+        const dateFilter: any = {};
+
+        if (startDate) {
+          const parsedStartDate = new Date(startDate);
+          if (isNaN(parsedStartDate.getTime())) {
+            throw createHttpError(400, "Invalid start date format");
+          }
+          parsedStartDate.setHours(0, 0, 0, 0);
+          dateFilter.$gte = parsedStartDate;
+        }
+
+        if (endDate) {
+          const parsedEndDate = new Date(endDate);
+          if (isNaN(parsedEndDate.getTime())) {
+            throw createHttpError(400, "Invalid end date format");
+          }
+          parsedEndDate.setHours(23, 59, 59, 999);
+          dateFilter.$lte = parsedEndDate;
+
+          // Validate date range
+          if (dateFilter.$gte && dateFilter.$gte > parsedEndDate) {
+            throw createHttpError(400, "Start date cannot be after end date");
+          }
+        }
+
+        query.$and.push({ createdAt: dateFilter });
+      }
 
 
       if (role !== 'admin' || !typeQuery) {
@@ -193,6 +225,8 @@ export class TransactionController {
       const _req = req as AuthRequest;
       const { username, role } = _req.user;
       const { subordinateId } = req.params;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
 
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
@@ -214,6 +248,34 @@ export class TransactionController {
         throw createHttpError(404, "User not found");
       }
       let query: any = {};
+
+      // Add date range filtering
+      if (startDate || endDate) {
+        query.createdAt = {};
+
+        if (startDate) {
+          const parsedStartDate = new Date(startDate);
+          if (isNaN(parsedStartDate.getTime())) {
+            throw createHttpError(400, "Invalid start date format");
+          }
+          parsedStartDate.setHours(0, 0, 0, 0);
+          query.createdAt.$gte = parsedStartDate;
+        }
+
+        if (endDate) {
+          const parsedEndDate = new Date(endDate);
+          if (isNaN(parsedEndDate.getTime())) {
+            throw createHttpError(400, "Invalid end date format");
+          }
+          parsedEndDate.setHours(23, 59, 59, 999);
+          query.createdAt.$lte = parsedEndDate;
+
+          if (query.createdAt.$gte && query.createdAt.$gte > parsedEndDate) {
+            throw createHttpError(400, "Start date cannot be after end date");
+          }
+        }
+      }
+
       if (
         user.role === "supermaster" ||
         user.subordinates.includes(new mongoose.Types.ObjectId(subordinateId))
@@ -277,9 +339,8 @@ export class TransactionController {
       const filter = req.query.filter || "";
       const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending order
       const skip = (page - 1) * limit;
-
-      console.log("GET ALL TRANSACTIONS : ")
-      console.log(username + " : " + req.query.sort)
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
 
       let parsedData: QueryParams = {
         role: "",
@@ -303,6 +364,42 @@ export class TransactionController {
       }
 
       let query: any = {};
+
+      if (startDate || endDate || (parsedData?.updatedAt)) {
+        query.updatedAt = {};
+
+        if (startDate) {
+          const parsedStartDate = new Date(startDate);
+          if (isNaN(parsedStartDate.getTime())) {
+            throw createHttpError(400, "Invalid start date format");
+          }
+          parsedStartDate.setHours(0, 0, 0, 0);
+          query.updatedAt.$gte = parsedStartDate;
+        } else if (parsedData?.updatedAt?.From) {
+          const fromDate = new Date(parsedData.updatedAt.From);
+          fromDate.setHours(0, 0, 0, 0);
+          query.updatedAt.$gte = fromDate;
+        }
+
+        if (endDate) {
+          const parsedEndDate = new Date(endDate);
+          if (isNaN(parsedEndDate.getTime())) {
+            throw createHttpError(400, "Invalid end date format");
+          }
+          parsedEndDate.setHours(23, 59, 59, 999);
+          query.updatedAt.$lte = parsedEndDate;
+        } else if (parsedData?.updatedAt?.To) {
+          const toDate = new Date(parsedData.updatedAt.To);
+          toDate.setHours(23, 59, 59, 999);
+          query.updatedAt.$lte = toDate;
+        }
+
+        if (query.updatedAt.$gte && query.updatedAt.$lte &&
+          query.updatedAt.$gte > query.updatedAt.$lte) {
+          throw createHttpError(400, "Start date cannot be after end date");
+        }
+      }
+
       if (type) {
         query.type = type;
       }

@@ -330,9 +330,10 @@ export class UserController {
 
   async getAllSubordinates(req: Request, res: Response, next: NextFunction) {
     try {
-      console.log("GET ALL SUBORDINATES");
       const _req = req as AuthRequest;
       const { username: currentUsername, role: currentUserRole } = _req.user;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
 
       const currentUser = await this.checkUser(currentUsername, currentUserRole);
 
@@ -349,13 +350,13 @@ export class UserController {
 
 
 
-      let parsedData: QueryParams = {
+      let parsedData = {
         role: "",
         status: "",
         totalRecharged: { From: 0, To: Infinity },
         totalRedeemed: { From: 0, To: Infinity },
         credits: { From: 0, To: Infinity },
-        updatedAt: { From: null, To: null },
+        createdAt: { From: null, To: null }, // Changed from updatedAt to createdAt
         type: "",
         amount: { From: 0, To: 0 },
       };
@@ -374,14 +375,50 @@ export class UserController {
       }
 
       let query: any = {};
-      if (filter) {
-        query.username = { $regex: filter, $options: "i" };
+      // Handle date range filtering
+      if (startDate || endDate || parsedData.createdAt?.From || parsedData.createdAt?.To) {
+        query.createdAt = {};
+
+        const fromDate = startDate ? new Date(startDate) :
+          parsedData.createdAt?.From ? new Date(parsedData.createdAt.From) : null;
+
+        const toDate = endDate ? new Date(endDate) :
+          parsedData.createdAt?.To ? new Date(parsedData.createdAt.To) : null;
+
+        if (fromDate) {
+          if (isNaN(fromDate.getTime())) {
+            throw createHttpError(400, "Invalid start date format");
+          }
+          fromDate.setHours(0, 0, 0, 0);
+          query.createdAt.$gte = fromDate;
+        }
+
+        if (toDate) {
+          if (isNaN(toDate.getTime())) {
+            throw createHttpError(400, "Invalid end date format");
+          }
+          toDate.setHours(23, 59, 59, 999);
+          query.createdAt.$lte = toDate;
+
+          if (fromDate && fromDate > toDate) {
+            throw createHttpError(400, "Start date cannot be after end date");
+          }
+        }
       }
+
+      if (filter) {
+        query.$or = [
+          { username: { $regex: filter, $options: "i" } },
+          { role: { $regex: filter, $options: "i" } }
+        ];
+      }
+
       if (role) {
         query.role = { $ne: currentUser.role, $eq: role };
       } else if (!role) {
         query.role = { $ne: currentUser.role };
       }
+
       if (status) {
         query.status = status;
       }
@@ -492,9 +529,10 @@ export class UserController {
 
       const _req = req as AuthRequest;
       const { username: currentUsername, role: currentUserRole } = _req.user;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
 
       const currentUser = await this.checkUser(currentUsername, currentUserRole);
-
       if (!currentUser) {
         throw createHttpError(404, "User not found");
       }
@@ -504,13 +542,14 @@ export class UserController {
       const skip = (page - 1) * limit;
       const filter = req.query.filter || "";
       const search = req.query.search as string;
-      let parsedData: QueryParams = {
+
+      let parsedData = {
         role: "",
         status: "",
         totalRecharged: { From: 0, To: Infinity },
         totalRedeemed: { From: 0, To: Infinity },
         credits: { From: 0, To: Infinity },
-        updatedAt: { From: null, To: null },
+        createdAt: { From: null, To: null },
         type: "",
         amount: { From: 0, To: 0 },
       };
@@ -531,6 +570,37 @@ export class UserController {
       let query: any = {
         username: { $in: Array.from(activePlayers).map((player: ActivePlayer) => player.username) },
       };
+
+      // Handle date range filtering
+      if (startDate || endDate || parsedData.createdAt?.From || parsedData.createdAt?.To) {
+        query.createdAt = {};
+
+        const fromDate = startDate ? new Date(startDate) :
+          parsedData.createdAt?.From ? new Date(parsedData.createdAt.From) : null;
+
+        const toDate = endDate ? new Date(endDate) :
+          parsedData.createdAt?.To ? new Date(parsedData.createdAt.To) : null;
+
+        if (fromDate) {
+          if (isNaN(fromDate.getTime())) {
+            throw createHttpError(400, "Invalid start date format");
+          }
+          fromDate.setHours(0, 0, 0, 0);
+          query.createdAt.$gte = fromDate;
+        }
+
+        if (toDate) {
+          if (isNaN(toDate.getTime())) {
+            throw createHttpError(400, "Invalid end date format");
+          }
+          toDate.setHours(23, 59, 59, 999);
+          query.createdAt.$lte = toDate;
+
+          if (fromDate && fromDate > toDate) {
+            throw createHttpError(400, "Start date cannot be after end date");
+          }
+        }
+      }
 
       if (filter) {
         query.username.$regex = filter;
@@ -624,6 +694,8 @@ export class UserController {
       const _req = req as AuthRequest;
       const { username, role } = _req.user;
       const { id } = req.query;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
 
       const currentUser = await this.checkUser(username, role);
       if (!currentUser) {
@@ -637,8 +709,6 @@ export class UserController {
 
 
       let userToCheck = currentUser;
-
-
       if (id) {
         userToCheck = await User.findById(id) || await PlayerModel.findById(id);
 
@@ -651,13 +721,14 @@ export class UserController {
       let filterRole, status, redeem, recharge, credits;
       const filter = req.query.filter || "";
       const search = req.query.search as string;
-      let parsedData: QueryParams = {
+
+      let parsedData = {
         role: "",
         status: "",
         totalRecharged: { From: 0, To: Infinity },
         totalRedeemed: { From: 0, To: Infinity },
         credits: { From: 0, To: Infinity },
-        updatedAt: { From: new Date(), To: new Date() },
+        createdAt: { From: null, To: null },
         type: "",
         amount: { From: 0, To: 0 },
       };
@@ -675,9 +746,45 @@ export class UserController {
 
       let query: any = {};
       query.createdBy = userToCheck._id;
-      if (filter) {
-        query.username = { $regex: filter, $options: "i" };
+
+      // Handle date range filtering
+      if (startDate || endDate || parsedData.createdAt?.From || parsedData.createdAt?.To) {
+        query.createdAt = {};
+
+        const fromDate = startDate ? new Date(startDate) :
+          parsedData.createdAt?.From ? new Date(parsedData.createdAt.From) : null;
+
+        const toDate = endDate ? new Date(endDate) :
+          parsedData.createdAt?.To ? new Date(parsedData.createdAt.To) : null;
+
+        if (fromDate) {
+          if (isNaN(fromDate.getTime())) {
+            throw createHttpError(400, "Invalid start date format");
+          }
+          fromDate.setHours(0, 0, 0, 0);
+          query.createdAt.$gte = fromDate;
+        }
+
+        if (toDate) {
+          if (isNaN(toDate.getTime())) {
+            throw createHttpError(400, "Invalid end date format");
+          }
+          toDate.setHours(23, 59, 59, 999);
+          query.createdAt.$lte = toDate;
+
+          if (fromDate && fromDate > toDate) {
+            throw createHttpError(400, "Start date cannot be after end date");
+          }
+        }
       }
+
+      if (filter) {
+        query.$or = [
+          { username: { $regex: filter, $options: "i" } },
+          { role: { $regex: filter, $options: "i" } }
+        ];
+      }
+
       if (filterRole) {
         query.role = { $ne: currentUser.role, $eq: filterRole };
       } else if (!filterRole) {
@@ -953,7 +1060,6 @@ export class UserController {
 
   async getReport(req: Request, res: Response, next: NextFunction) {
     try {
-      console.log("GET REPORT");
 
       const _req = req as AuthRequest;
       const { username, role } = _req.user;
