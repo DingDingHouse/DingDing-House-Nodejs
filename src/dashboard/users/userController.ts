@@ -407,13 +407,18 @@ export class UserController {
       }
 
       if (filter) {
-        query.username = { $regex: filter, $options: "i" };
+        query.$or = [
+          { username: { $regex: filter, $options: "i" } },
+          { role: { $regex: filter, $options: "i" } }
+        ];
       }
+
       if (role) {
         query.role = { $ne: currentUser.role, $eq: role };
       } else if (!role) {
         query.role = { $ne: currentUser.role };
       }
+
       if (status) {
         query.status = status;
       }
@@ -774,8 +779,12 @@ export class UserController {
       }
 
       if (filter) {
-        query.username = { $regex: filter, $options: "i" };
+        query.$or = [
+          { username: { $regex: filter, $options: "i" } },
+          { role: { $regex: filter, $options: "i" } }
+        ];
       }
+
       if (filterRole) {
         query.role = { $ne: currentUser.role, $eq: filterRole };
       } else if (!filterRole) {
@@ -1051,7 +1060,6 @@ export class UserController {
 
   async getReport(req: Request, res: Response, next: NextFunction) {
     try {
-      console.log("GET REPORT");
 
       const _req = req as AuthRequest;
       const { username, role } = _req.user;
