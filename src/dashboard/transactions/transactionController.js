@@ -56,6 +56,8 @@ class TransactionController {
                 const filter = req.query.filter || "";
                 const sortOrder = req.query.sort === "desc" ? -1 : 1;
                 const typeQuery = req.query.type;
+                const startDate = req.query.startDate;
+                const endDate = req.query.endDate;
                 let parsedData = {
                     role: "",
                     status: "",
@@ -76,6 +78,31 @@ class TransactionController {
                     }
                 }
                 let query = {};
+                // Handle date range filtering
+                if (startDate || endDate) {
+                    const dateFilter = {};
+                    if (startDate) {
+                        const parsedStartDate = new Date(startDate);
+                        if (isNaN(parsedStartDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid start date format");
+                        }
+                        parsedStartDate.setHours(0, 0, 0, 0);
+                        dateFilter.$gte = parsedStartDate;
+                    }
+                    if (endDate) {
+                        const parsedEndDate = new Date(endDate);
+                        if (isNaN(parsedEndDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid end date format");
+                        }
+                        parsedEndDate.setHours(23, 59, 59, 999);
+                        dateFilter.$lte = parsedEndDate;
+                        // Validate date range
+                        if (dateFilter.$gte && dateFilter.$gte > parsedEndDate) {
+                            throw (0, http_errors_1.default)(400, "Start date cannot be after end date");
+                        }
+                    }
+                    query.$and.push({ createdAt: dateFilter });
+                }
                 if (role !== 'admin' || !typeQuery) {
                     query.$and = [
                         {
@@ -166,6 +193,8 @@ class TransactionController {
                 const _req = req;
                 const { username, role } = _req.user;
                 const { subordinateId } = req.params;
+                const startDate = req.query.startDate;
+                const endDate = req.query.endDate;
                 const page = parseInt(req.query.page) || 1;
                 const limit = parseInt(req.query.limit) || 10;
                 const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending order
@@ -180,6 +209,29 @@ class TransactionController {
                     throw (0, http_errors_1.default)(404, "User not found");
                 }
                 let query = {};
+                // Add date range filtering
+                if (startDate || endDate) {
+                    query.createdAt = {};
+                    if (startDate) {
+                        const parsedStartDate = new Date(startDate);
+                        if (isNaN(parsedStartDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid start date format");
+                        }
+                        parsedStartDate.setHours(0, 0, 0, 0);
+                        query.createdAt.$gte = parsedStartDate;
+                    }
+                    if (endDate) {
+                        const parsedEndDate = new Date(endDate);
+                        if (isNaN(parsedEndDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid end date format");
+                        }
+                        parsedEndDate.setHours(23, 59, 59, 999);
+                        query.createdAt.$lte = parsedEndDate;
+                        if (query.createdAt.$gte && query.createdAt.$gte > parsedEndDate) {
+                            throw (0, http_errors_1.default)(400, "Start date cannot be after end date");
+                        }
+                    }
+                }
                 if (user.role === "supermaster" ||
                     user.subordinates.includes(new mongoose_1.default.Types.ObjectId(subordinateId))) {
                     const { transactions, totalTransactions, totalPages, currentPage, outOfRange, } = yield this.transactionService.getTransactions(subordinate.username, page, limit, query, "createdAt", sortOrder);
@@ -211,6 +263,7 @@ class TransactionController {
     }
     getAllTransactions(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             try {
                 const _req = req;
                 const { username, role } = _req.user;
@@ -221,8 +274,8 @@ class TransactionController {
                 const filter = req.query.filter || "";
                 const sortOrder = req.query.sort === "desc" ? -1 : 1; // Default to ascending order
                 const skip = (page - 1) * limit;
-                console.log("GET ALL TRANSACTIONS : ");
-                console.log(username + " : " + req.query.sort);
+                const startDate = req.query.startDate;
+                const endDate = req.query.endDate;
                 let parsedData = {
                     role: "",
                     status: "",
@@ -243,6 +296,39 @@ class TransactionController {
                     }
                 }
                 let query = {};
+                if (startDate || endDate || (parsedData === null || parsedData === void 0 ? void 0 : parsedData.updatedAt)) {
+                    query.updatedAt = {};
+                    if (startDate) {
+                        const parsedStartDate = new Date(startDate);
+                        if (isNaN(parsedStartDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid start date format");
+                        }
+                        parsedStartDate.setHours(0, 0, 0, 0);
+                        query.updatedAt.$gte = parsedStartDate;
+                    }
+                    else if ((_a = parsedData === null || parsedData === void 0 ? void 0 : parsedData.updatedAt) === null || _a === void 0 ? void 0 : _a.From) {
+                        const fromDate = new Date(parsedData.updatedAt.From);
+                        fromDate.setHours(0, 0, 0, 0);
+                        query.updatedAt.$gte = fromDate;
+                    }
+                    if (endDate) {
+                        const parsedEndDate = new Date(endDate);
+                        if (isNaN(parsedEndDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid end date format");
+                        }
+                        parsedEndDate.setHours(23, 59, 59, 999);
+                        query.updatedAt.$lte = parsedEndDate;
+                    }
+                    else if ((_b = parsedData === null || parsedData === void 0 ? void 0 : parsedData.updatedAt) === null || _b === void 0 ? void 0 : _b.To) {
+                        const toDate = new Date(parsedData.updatedAt.To);
+                        toDate.setHours(23, 59, 59, 999);
+                        query.updatedAt.$lte = toDate;
+                    }
+                    if (query.updatedAt.$gte && query.updatedAt.$lte &&
+                        query.updatedAt.$gte > query.updatedAt.$lte) {
+                        throw (0, http_errors_1.default)(400, "Start date cannot be after end date");
+                    }
+                }
                 if (type) {
                     query.type = type;
                 }

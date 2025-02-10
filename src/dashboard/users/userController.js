@@ -260,10 +260,12 @@ class UserController {
     }
     getAllSubordinates(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d;
             try {
-                console.log("GET ALL SUBORDINATES");
                 const _req = req;
                 const { username: currentUsername, role: currentUserRole } = _req.user;
+                const startDate = req.query.startDate;
+                const endDate = req.query.endDate;
                 const currentUser = yield this.checkUser(currentUsername, currentUserRole);
                 if (!currentUser) {
                     throw (0, http_errors_1.default)(404, "User not found");
@@ -280,7 +282,7 @@ class UserController {
                     totalRecharged: { From: 0, To: Infinity },
                     totalRedeemed: { From: 0, To: Infinity },
                     credits: { From: 0, To: Infinity },
-                    updatedAt: { From: null, To: null },
+                    createdAt: { From: null, To: null }, // Changed from updatedAt to createdAt
                     type: "",
                     amount: { From: 0, To: 0 },
                 };
@@ -296,8 +298,36 @@ class UserController {
                     }
                 }
                 let query = {};
+                // Handle date range filtering
+                if (startDate || endDate || ((_a = parsedData.createdAt) === null || _a === void 0 ? void 0 : _a.From) || ((_b = parsedData.createdAt) === null || _b === void 0 ? void 0 : _b.To)) {
+                    query.createdAt = {};
+                    const fromDate = startDate ? new Date(startDate) :
+                        ((_c = parsedData.createdAt) === null || _c === void 0 ? void 0 : _c.From) ? new Date(parsedData.createdAt.From) : null;
+                    const toDate = endDate ? new Date(endDate) :
+                        ((_d = parsedData.createdAt) === null || _d === void 0 ? void 0 : _d.To) ? new Date(parsedData.createdAt.To) : null;
+                    if (fromDate) {
+                        if (isNaN(fromDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid start date format");
+                        }
+                        fromDate.setHours(0, 0, 0, 0);
+                        query.createdAt.$gte = fromDate;
+                    }
+                    if (toDate) {
+                        if (isNaN(toDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid end date format");
+                        }
+                        toDate.setHours(23, 59, 59, 999);
+                        query.createdAt.$lte = toDate;
+                        if (fromDate && fromDate > toDate) {
+                            throw (0, http_errors_1.default)(400, "Start date cannot be after end date");
+                        }
+                    }
+                }
                 if (filter) {
-                    query.username = { $regex: filter, $options: "i" };
+                    query.$or = [
+                        { username: { $regex: filter, $options: "i" } },
+                        { role: { $regex: filter, $options: "i" } }
+                    ];
                 }
                 if (role) {
                     query.role = { $ne: currentUser.role, $eq: role };
@@ -394,6 +424,7 @@ class UserController {
     }
     getAllPlayers(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d;
             try {
                 const activePlayers = new Set();
                 sessionManager_1.sessionManager.getPlatformSessions().forEach((value, key) => {
@@ -401,6 +432,8 @@ class UserController {
                 });
                 const _req = req;
                 const { username: currentUsername, role: currentUserRole } = _req.user;
+                const startDate = req.query.startDate;
+                const endDate = req.query.endDate;
                 const currentUser = yield this.checkUser(currentUsername, currentUserRole);
                 if (!currentUser) {
                     throw (0, http_errors_1.default)(404, "User not found");
@@ -416,7 +449,7 @@ class UserController {
                     totalRecharged: { From: 0, To: Infinity },
                     totalRedeemed: { From: 0, To: Infinity },
                     credits: { From: 0, To: Infinity },
-                    updatedAt: { From: null, To: null },
+                    createdAt: { From: null, To: null },
                     type: "",
                     amount: { From: 0, To: 0 },
                 };
@@ -434,6 +467,31 @@ class UserController {
                 let query = {
                     username: { $in: Array.from(activePlayers).map((player) => player.username) },
                 };
+                // Handle date range filtering
+                if (startDate || endDate || ((_a = parsedData.createdAt) === null || _a === void 0 ? void 0 : _a.From) || ((_b = parsedData.createdAt) === null || _b === void 0 ? void 0 : _b.To)) {
+                    query.createdAt = {};
+                    const fromDate = startDate ? new Date(startDate) :
+                        ((_c = parsedData.createdAt) === null || _c === void 0 ? void 0 : _c.From) ? new Date(parsedData.createdAt.From) : null;
+                    const toDate = endDate ? new Date(endDate) :
+                        ((_d = parsedData.createdAt) === null || _d === void 0 ? void 0 : _d.To) ? new Date(parsedData.createdAt.To) : null;
+                    if (fromDate) {
+                        if (isNaN(fromDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid start date format");
+                        }
+                        fromDate.setHours(0, 0, 0, 0);
+                        query.createdAt.$gte = fromDate;
+                    }
+                    if (toDate) {
+                        if (isNaN(toDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid end date format");
+                        }
+                        toDate.setHours(23, 59, 59, 999);
+                        query.createdAt.$lte = toDate;
+                        if (fromDate && fromDate > toDate) {
+                            throw (0, http_errors_1.default)(400, "Start date cannot be after end date");
+                        }
+                    }
+                }
                 if (filter) {
                     query.username.$regex = filter;
                     query.username.$options = "i";
@@ -506,10 +564,13 @@ class UserController {
     }
     getCurrentUserSubordinates(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d;
             try {
                 const _req = req;
                 const { username, role } = _req.user;
                 const { id } = req.query;
+                const startDate = req.query.startDate;
+                const endDate = req.query.endDate;
                 const currentUser = yield this.checkUser(username, role);
                 if (!currentUser) {
                     throw (0, http_errors_1.default)(401, "User not found");
@@ -534,7 +595,7 @@ class UserController {
                     totalRecharged: { From: 0, To: Infinity },
                     totalRedeemed: { From: 0, To: Infinity },
                     credits: { From: 0, To: Infinity },
-                    updatedAt: { From: new Date(), To: new Date() },
+                    createdAt: { From: null, To: null },
                     type: "",
                     amount: { From: 0, To: 0 },
                 };
@@ -550,8 +611,36 @@ class UserController {
                 }
                 let query = {};
                 query.createdBy = userToCheck._id;
+                // Handle date range filtering
+                if (startDate || endDate || ((_a = parsedData.createdAt) === null || _a === void 0 ? void 0 : _a.From) || ((_b = parsedData.createdAt) === null || _b === void 0 ? void 0 : _b.To)) {
+                    query.createdAt = {};
+                    const fromDate = startDate ? new Date(startDate) :
+                        ((_c = parsedData.createdAt) === null || _c === void 0 ? void 0 : _c.From) ? new Date(parsedData.createdAt.From) : null;
+                    const toDate = endDate ? new Date(endDate) :
+                        ((_d = parsedData.createdAt) === null || _d === void 0 ? void 0 : _d.To) ? new Date(parsedData.createdAt.To) : null;
+                    if (fromDate) {
+                        if (isNaN(fromDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid start date format");
+                        }
+                        fromDate.setHours(0, 0, 0, 0);
+                        query.createdAt.$gte = fromDate;
+                    }
+                    if (toDate) {
+                        if (isNaN(toDate.getTime())) {
+                            throw (0, http_errors_1.default)(400, "Invalid end date format");
+                        }
+                        toDate.setHours(23, 59, 59, 999);
+                        query.createdAt.$lte = toDate;
+                        if (fromDate && fromDate > toDate) {
+                            throw (0, http_errors_1.default)(400, "Start date cannot be after end date");
+                        }
+                    }
+                }
                 if (filter) {
-                    query.username = { $regex: filter, $options: "i" };
+                    query.$or = [
+                        { username: { $regex: filter, $options: "i" } },
+                        { role: { $regex: filter, $options: "i" } }
+                    ];
                 }
                 if (filterRole) {
                     query.role = { $ne: currentUser.role, $eq: filterRole };
@@ -782,7 +871,6 @@ class UserController {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b, _c, _d;
             try {
-                console.log("GET REPORT");
                 const _req = req;
                 const { username, role } = _req.user;
                 const { type, userId } = req.query;
