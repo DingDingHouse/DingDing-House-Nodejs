@@ -19,6 +19,7 @@ const _config = {
     emailSource: process.env.EMAILSOURCE,
     platformName: process.env.PLATFORM_NAME,
     sentToemail: process.env.SENT_TO_EMAIL,
-    hosted_url_cors: process.env.HOSTED_URL_CORS
+    hosted_url_cors: process.env.HOSTED_URL_CORS,
+    redis_url: process.env.REDIS_URL,
 };
 exports.config = Object.freeze(_config);
