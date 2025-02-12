@@ -102,7 +102,7 @@ export function sendInitData(gameInstance: SLLLL) {
   gameInstance.settings.reels = reels;
   const dataToSend = {
     GameData: {
-      Reel: reels,
+      // Reel: reels,
       Bets: gameInstance.settings.currentGamedata.bets,
     },
     UIData: UiInitData,
@@ -182,19 +182,21 @@ export function checkForDouble(gameInstance: SLLLL): boolean {
     const rows = resultMatrix.length;
 
     // Check if 1st, 2nd, and 3rd columns have symbol with ID 12 regardless of row
-    let col1Has12 = false;
-    let col2Has12 = false;
-    let col3Has12 = false;
+    let col1Hasscatter = false;
+    let col2Hasscatter = false;
+    let col3Hasscatter = false;
 
 
     for (let j = 0; j < rows; j++) { // Loop through rows
-      if (resultMatrix[j][1] == settings.scatter.SymbolID) col1Has12 = true; // Check 1st column
-      if (resultMatrix[j][2] == settings.scatter.SymbolID) col2Has12 = true; // Check 2nd column
-      if (resultMatrix[j][3] == settings.scatter.SymbolID) col3Has12 = true; // Check 3rd column
+      if (resultMatrix[j][1] == settings.scatter.SymbolID) col1Hasscatter = true; // Check 1st column
+      if (resultMatrix[j][2] == settings.scatter.SymbolID) col2Hasscatter = true; // Check 2nd column
+      if (resultMatrix[j][3] == settings.scatter.SymbolID) col3Hasscatter = true; // Check 3rd column
 
 
       // If all three columns have the symbol, return true
-      if (col1Has12 && col2Has12 && col3Has12) {
+      if (col1Hasscatter &&
+          col2Hasscatter &&
+          col3Hasscatter) {
         settings.isDouble = true
         return true;
       }
@@ -216,19 +218,21 @@ export function checkForFreespin(gameInstance: SLLLL): boolean {
     const rows = resultMatrix.length;
 
     // Check if 1st, 2nd, and 3rd columns have symbol with ID 12 regardless of row
-    let col1Has12 = false;
-    let col2Has12 = false;
-    let col3Has12 = false;
+    let col1Hasfreespin = false;
+    let col2Hasfreespin = false;
+    let col3Hasfreespin = false;
 
 
     for (let j = 0; j < rows; j++) { // Loop through rows
-      if (resultMatrix[j][0] == settings.freeSpin.SymbolID) col1Has12 = true; // Check 1st column
-      if (resultMatrix[j][1] == settings.freeSpin.SymbolID) col2Has12 = true; // Check 2nd column
-      if (resultMatrix[j][2] == settings.freeSpin.SymbolID) col3Has12 = true; // Check 3rd column
+      if (resultMatrix[j][0] == settings.freeSpin.SymbolID) col1Hasfreespin = true; // Check 1st column
+      if (resultMatrix[j][1] == settings.freeSpin.SymbolID) col2Hasfreespin = true; // Check 2nd column
+      if (resultMatrix[j][2] == settings.freeSpin.SymbolID) col3Hasfreespin = true; // Check 3rd column
 
 
       // If all three columns have the symbol, return true
-      if (col1Has12 && col2Has12 && col3Has12) {
+      if (col1Hasfreespin &&
+          col2Hasfreespin &&
+          col3Hasfreespin) {
         settings.freeSpin.isFreeSpinTriggered = true
         settings.freeSpin.isFreeSpin = true;
         settings.freeSpin.freeSpinCount += settings.freeSpin.freeSpinIncrement;
@@ -366,7 +370,7 @@ export function makeResultJson(gameInstance: SLLLL) {
     const credits = gameInstance.getPlayerData().credits;
     const Balance = credits.toFixed(5);
     const sendData = {
-      gameData: {
+      GameData: {
         resultSymbols: settings.resultSymbolMatrix,
         freeSpin: {
           isFreeSpin: settings.freeSpin.isFreeSpin,

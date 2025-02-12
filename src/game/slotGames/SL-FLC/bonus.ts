@@ -1,6 +1,7 @@
 import { generatetrueRandomNumber } from "../../Utils/gameUtils";
 import { SLFLC } from "./FireLinkChinaTownBase";
 import { getRandomValue } from "./helper";
+import { ValueType } from "./types";
 
 export class RandomBonusGenerator {
   constructor(current: SLFLC) {
@@ -10,9 +11,9 @@ export class RandomBonusGenerator {
     // console.log("ccIndices", ccIndices);
     // console.log("coinIndices", coinIndices);
 
-    for (let x = 0; x < current.settings.currentGamedata.matrix.x; x++) {
+    for (let x = 0; x < current.settings.matrix.x; x++) {
       const startPosition = this.getRandomIndex((current.settings.bonusReels[x].length - 1));
-      for (let y = 0; y < current.settings.currentGamedata.matrix.y; y++) {
+      for (let y = 0; y < current.settings.matrix.y; y++) {
         if (!matrix[y]) matrix[y] = [];
         matrix[y][x] = current.settings.bonusReels[x][(startPosition + y) % current.settings.bonusReels[x].length];
         // TODO: freeze sc  positions 
@@ -31,7 +32,7 @@ export class RandomBonusGenerator {
     // matrix.push(['5', '8', '1', '5', '1','6'])
     console.log("bonus matrix");
     console.log(matrix);
-    
+
 
     // matrix.forEach(row => console.log(row.join(' ')));
     // current.settings.resultReelIndex = matrix;
@@ -112,24 +113,51 @@ export function checkForBonus(gameInstance: SLFLC): boolean {
     settings.bonus.scatterCount = settings.scatter.values.length
     settings.bonus.isTriggered = true
     settings.bonus.spinCount = 3
+
+    // const triggers = settings.scatter.bonusTrigger
+    // const rows = rowsOnExpand(scatterCount, triggers)
+    // const currentRows = settings.currentGamedata.matrix.y
+    // if (rows !== currentRows) {
+    //
+    //   settings.currentGamedata.matrix.y = rows
+    //   settings.scatter.values = shiftScatterValues(settings.scatter.values, rows - currentRows)
+    // }
     return true
   }
   return false
+}
+export function shiftScatterValues(scatterValues: ValueType[], shift: number): ValueType[] {
+
+  return scatterValues.map(sc => {
+    return {
+      value: sc.value,
+      index: [sc.index[0] + shift, sc.index[1]]
+    }
+  })
 }
 export function handleBonusSpin(gameInstance: SLFLC) {
   const { settings } = gameInstance
   new RandomBonusGenerator(gameInstance)
   populateScatterValues(gameInstance, "bonus")
   const scatterCount = settings.scatter.values.length
-  const triggers = settings.scatter.bonusTrigger
-  const rows = rowsOnExpand(scatterCount, triggers)
-  settings.currentGamedata.matrix.y = rows
+  // const triggers = settings.scatter.bonusTrigger
+  // const rows = rowsOnExpand(scatterCount, triggers)
+  // const currentRows = settings.currentGamedata.matrix.y
+  // if (rows !== currentRows) {
+  //
+  //   settings.scatter.values = shiftScatterValues(settings.scatter.values, rows - currentRows)
+  //   settings.currentGamedata.matrix.y = rows
+  // }
   settings.bonus.spinCount--
+  //NOTE: bonus inside freespin
+  if (settings.bonus.spinCount < 0 && settings.freespinCount === settings.freespin.options[settings.freespin.optionIndex].count) {
+    settings.isFreespin = true
+  }
   settings.bonus.scatterCount = scatterCount
-  if(scatterCount === 40){
+  if (scatterCount === 40) {
     settings.bonus.spinCount = -1
   }
-  if(settings.bonus.spinCount < 0){
+  if (settings.bonus.spinCount < 0) {
     collectScatter(gameInstance)
   }
 }
@@ -145,7 +173,7 @@ export function collectScatter(gameInstance: SLFLC) {
   const { settings } = gameInstance
   const totalPayout = settings.scatter.values.reduce((acc, sc) => acc + sc.value, 0)
   console.log(totalPayout);
-  
+
   gameInstance.playerData.currentWining = totalPayout
 
 }

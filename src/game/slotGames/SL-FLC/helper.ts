@@ -8,7 +8,7 @@ import {
 import { specialIcons } from "./types";
 import { SLFLC } from "./FireLinkChinaTownBase";
 import { precisionRound } from "../../../utils/utils";
-import { checkForBonus, handleBonusSpin, populateScatterValues } from "./bonus";
+import { checkForBonus, handleBonusSpin, populateScatterValues, rowsOnExpand, shiftScatterValues } from "./bonus";
 
 /**
  * Initializes the game settings using the provided game data and game instance.
@@ -349,7 +349,7 @@ export function checkForWin(gameInstance: SLFLC) {
         const LTRResult = checkLineSymbols(firstSymbolLTR, line, gameInstance, 'LTR');
         if (LTRResult.isWinningLine && LTRResult.matchCount >= 3) {
 
-          //FIX: add freespin multiplier feat
+          //NOTE: add freespin multiplier feat
           let symbolMultiplierLTR = accessData(firstSymbolLTR, LTRResult.matchCount, gameInstance);
           if (symbolMultiplierLTR > 0) {
             if (settings.freespinCount > -1) {
@@ -424,10 +424,18 @@ export function checkForWin(gameInstance: SLFLC) {
     if (settings.bonus.spinCount > 0) {
       settings.bonus.isTriggered = false
     }
+    const rows = rowsOnExpand(settings.bonus.scatterCount, settings.scatter.bonusTrigger)
+    const currentRows = settings.currentGamedata.matrix.y
+    if (rows > currentRows) {
+
+      settings.currentGamedata.matrix.y = rows
+      settings.scatter.values = shiftScatterValues(settings.scatter.values, rows - currentRows)
+    }
     if (settings.bonus.spinCount < 0) {
       settings.bonus.scatterCount = 0
       settings.bonusResultMatrix = []
       settings.scatter.values = []
+      settings.matrix.y = 4
     }
     settings._winData.winningLines = []
     settings._winData.winningSymbols = []
@@ -451,11 +459,13 @@ export function sendInitData(gameInstance: SLFLC) {
   // gameInstance.settings.reels = reels;
   const dataToSend = {
     GameData: {
-      Reel: gameInstance.settings.reels,
-      bonusReel: gameInstance.settings.bonusReels,
+      // Reel: gameInstance.settings.reels,
+      // bonusReel: gameInstance.settings.bonusReels,
+      bonusTrigger: gameInstance.settings.scatter.bonusTrigger,
       linesApiData: gameInstance.settings.currentGamedata.linesApiData,
       Bets: gameInstance.settings.currentGamedata.bets,
       freespinOptions: gameInstance.settings.freespin.options,
+      jackpotMultipliers: gameInstance.settings.scatter.scatterMultipliers.slice(gameInstance.settings.scatter.scatterMultipliers.length - 4),
     },
     UIData: UiInitData,
     PlayerData: {
@@ -482,6 +492,7 @@ export function makeResultJson(gameInstance: SLFLC) {
           optionIndex: settings.freespin.optionIndex,
         },
         bonus: {
+          matrix: settings.bonusResultMatrix,
           isTriggered: settings.bonus.isTriggered,
           scatterCount: settings.bonus.scatterCount,
           spinCount: settings.bonus.spinCount

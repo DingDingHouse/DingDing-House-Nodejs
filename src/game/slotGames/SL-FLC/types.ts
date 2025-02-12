@@ -28,7 +28,7 @@ export interface SLFLCSETTINGS {
   bonus: {
     isTriggered: boolean;
     scatterCount: number;
-    spinCount:number
+    spinCount: number
   },
   wild: {
     SymbolName: string;
@@ -40,18 +40,18 @@ export interface SLFLCSETTINGS {
     SymbolID: number;
     bonusTrigger: [
       {
-        count: [number,number];
+        count: [number, number];
         rows: number
       }
     ],
     scatterMultipliers: number[],
     scatterProbs: number[],
-    values:ValueType[]
+    values: ValueType[]
   },
   freespin: {
     SymbolName: string;
     SymbolID: number;
-    defaultOptionIndex:number;
+    defaultOptionIndex: number;
     optionIndex: number //index 
     options: FreespinOption[]
   },
@@ -73,6 +73,6 @@ export type FreespinOption = {
   multiplier: number[];
 }
 export type ValueType = {
-  index:[number,number];
-  value:number;
+  index: [number, number];
+  value: number;
 }
