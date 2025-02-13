@@ -107,7 +107,7 @@ export class SLFLC {
       if (this.settings.freespinCount >= 0 && this.settings.bonus.spinCount < 0) {
         this.settings.freespinCount--;
       }
-      
+
 
       const spinId = platformSession.currentGameSession.createSpin();
       platformSession.currentGameSession.updateSpinField(spinId, 'betAmount', this.settings.currentBet);
@@ -151,6 +151,5 @@ export class SLFLC {
   }
 
 }
-
 
 

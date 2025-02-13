@@ -426,7 +426,7 @@ export function checkForWin(gameInstance: SLFLC) {
     }
     const rows = rowsOnExpand(settings.bonus.scatterCount, settings.scatter.bonusTrigger)
     const currentRows = settings.currentGamedata.matrix.y
-    if(rows > currentRows ){
+    if (rows > currentRows) {
 
       settings.currentGamedata.matrix.y = rows
       settings.scatter.values = shiftScatterValues(settings.scatter.values, rows - currentRows)
@@ -482,7 +482,7 @@ export function makeResultJson(gameInstance: SLFLC) {
     const Balance = credits.toFixed(3)
     const sendData = {
       GameData: {
-        resultSymbols:  settings.resultSymbolMatrix ,
+        resultSymbols: settings.resultSymbolMatrix,
         linesToEmit: settings._winData.winningLines,
         symbolsToEmit: settings._winData.winningSymbols,
         scatterValues: settings.scatter.values,
@@ -492,7 +492,7 @@ export function makeResultJson(gameInstance: SLFLC) {
           optionIndex: settings.freespin.optionIndex,
         },
         bonus: {
-          matrix:settings.bonusResultMatrix,
+          matrix: settings.bonusResultMatrix,
           isTriggered: settings.bonus.isTriggered,
           scatterCount: settings.bonus.scatterCount,
           spinCount: settings.bonus.spinCount

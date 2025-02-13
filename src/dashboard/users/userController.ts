@@ -788,12 +788,12 @@ export class UserController {
       if (filter) {
         query.$or = [
           { username: { $regex: filter, $options: "i" } },
-          { role: { $eq: filter } } // Strict role match
+          { role: { $regex: filter, $options: "i" } }
         ];
       }
 
       if (filterRole) {
-        query.role = { $eq: role }; // Strictly match only this role
+        query.role = { $ne: currentUser.role, $eq: filterRole };
       } else if (!filterRole) {
         query.role = { $ne: currentUser.role };
       }
