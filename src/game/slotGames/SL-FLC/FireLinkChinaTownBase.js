@@ -102,7 +102,7 @@ class SLFLC {
                     this.playerData.totalbet += currentBet;
                     this.deductPlayerBalance(currentBet);
                 }
-                if (this.settings.freespinCount >= 0) {
+                if (this.settings.freespinCount >= 0 && this.settings.bonus.spinCount < 0) {
                     this.settings.freespinCount--;
                 }
                 const spinId = platformSession.currentGameSession.createSpin();
