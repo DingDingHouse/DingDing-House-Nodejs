@@ -95,7 +95,7 @@ class SessionManager {
 
     }
 
-    private async notifyManagers(managerName: string, eventType: string, payload: any) {
+     private async notifyManagers(managerName: string, eventType: string, payload: any) {
 
         try {
             const admin = this.getActiveManagerByRole('admin');

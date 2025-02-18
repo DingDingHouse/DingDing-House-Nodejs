@@ -1,4 +1,5 @@
 import { config as conf } from "dotenv";
+import { platform } from "os";
 conf();
 
 const _config = {
@@ -17,7 +18,6 @@ const _config = {
   emailSource: process.env.EMAILSOURCE,
   platformName: process.env.PLATFORM_NAME,
   sentToemail: process.env.SENT_TO_EMAIL,
-  hosted_url_cors: process.env.HOSTED_URL_CORS,
-  redis_url: process.env.REDIS_URL,
+  hosted_url_cors: process.env.HOSTED_URL_CORS
 };
 export const config = Object.freeze(_config);
