@@ -473,11 +473,11 @@ export function getRandomValue(gameInstance: SLWB , type:  'smallFreespin' | 'me
         values = settings?.smallWheelFeature.featureValues;
         probabilities = settings?.smallWheelFeature.featureProbs;
     }else if(type === 'mediumFreespin'){
-        values = settings?.smallWheelFeature.featureValues;
-        probabilities = settings?.smallWheelFeature.featureProbs;
+        values = settings?.mediumWheelFeature.featureValues;
+        probabilities = settings?.mediumWheelFeature.featureProbs;
     } else if (type === 'largeFreespin') {
-        values = settings?.smallWheelFeature.featureValues;
-        probabilities = settings?.smallWheelFeature.featureProbs;
+        values = settings?.largeWheelFeature.featureValues;
+        probabilities = settings?.largeWheelFeature.featureProbs;
     }
     else {
         throw new Error("Invalid type, expected 'coin' or 'freespin'");

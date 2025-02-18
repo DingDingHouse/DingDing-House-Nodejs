@@ -175,8 +175,14 @@ export function checkForWin(gameInstance: SLBS) {
             }
         }      
 
-        const {isWinning, totalPayout} = checkSymbolOcuurence(gameInstance);
-         console.log(totalPayout, "total");
+        const {isWinning, totalPayout, matchedIndices} = checkSymbolOcuurence(gameInstance);
+        //  console.log(totalPayout, "total");
+         const formattedIndices = matchedIndices.map(({ col, row }) => `${col},${row}`);
+         const validIndices = formattedIndices.filter(index => index.length > 2);
+         if (validIndices.length > 0) {
+             gameInstance.settings._winData.winningSymbols.push(validIndices);
+
+     }
          
     
 
@@ -193,6 +199,7 @@ export function checkForWin(gameInstance: SLBS) {
         settings.freeSpin.freeSpinsAdded = false
         settings._winData.winningSymbols = []
         settings.isJackpot = false;
+        settings._winData.winningLines = []
      
     } catch (error) {
         console.error("Error in checkForWin", error);
@@ -216,11 +223,15 @@ function checkSymbolOcuurence(gameInstance:SLBS){
         if (hasWild) {
             const nonWildSymbols = row.filter((symbol) => symbol !== settings.wild.SymbolID);
             const allNonWildSame = nonWildSymbols.every((symbol) => symbol === nonWildSymbols[0]);
+                             
+            if (
+                allNonWildSame && 
+                nonWildSymbols.length > 0 && 
+                nonWildSymbols[0] != settings.jackpot.SymbolID && 
+                nonWildSymbols[0] != settings.bonus.SymbolID
+            ) {
 
-            if (allNonWildSame && nonWildSymbols.length > 0) {
-                row.fill(nonWildSymbols[0]);
-            } else {
-                row.fill(settings.wild.SymbolID);
+                            row.fill(nonWildSymbols[0]);
             }
         }
     
@@ -228,13 +239,14 @@ function checkSymbolOcuurence(gameInstance:SLBS){
         const isSpecialCombination = row.every((symbol) =>
             [settings.bar3.SymbolID, settings.bar2.SymbolID, settings.bar1.SymbolID].includes(symbol)
         );
-        console.log(`Row ${rowIndex} all same:`, allSame);
+        // console.log(`Row ${rowIndex} all same:`, allSame);
     
         if (allSame || isSpecialCombination) {
             const matchedSymbol = row[0];
 
-            if((matchedSymbol === settings.bonus.SymbolID) && !settings.freeSpin.useFreeSpin){
+            if((matchedSymbol === settings.bonus.SymbolID ) && !settings.freeSpin.useFreeSpin ){
                 settings.freeSpin.useFreeSpin = true;
+                settings.freeSpin.freeSpinsAdded = true;
                 settings.freeSpin.freeSpinCount  = settings.freeSpin.freeSpinAwarded;
             }else if((matchedSymbol === settings.bonus.SymbolID) && settings.freeSpin.useFreeSpin){
                 settings.freeSpin.freeSpinCount  = settings.freeSpin.freeSpinAwarded;
@@ -246,6 +258,8 @@ function checkSymbolOcuurence(gameInstance:SLBS){
             }
 
             if(allSame){
+            
+   
             const symbol:any = settings.currentGamedata.Symbols.filter((symbol)=>symbol.Id === matchedSymbol)
             console.log(symbol[0].payout, "S");
             console.log(settings.currentBet);
@@ -258,7 +272,9 @@ function checkSymbolOcuurence(gameInstance:SLBS){
                 const payout = settings.anyMatchCount * settings.currentBet;
                 totalPayout += payout;
             }
-            
+            settings._winData.winningLines.push(rowIndex);
+            console.log(matchedSymbol, 'matched sym'); 
+
             matchedIndices.push(
                 { col: 0, row: rowIndex },
                 { col: 1, row: rowIndex },
@@ -271,7 +287,7 @@ function checkSymbolOcuurence(gameInstance:SLBS){
     console.log(totalPayout);
     
 
-        return { isWinning, totalPayout};
+        return { isWinning, totalPayout, matchedIndices};
     
 }
 
@@ -395,7 +411,9 @@ export function makeResultJson(gameInstance: SLBS) {
                 symbolsToEmit: settings._winData.winningSymbols,
                 isFreeSpin: settings.freeSpin.useFreeSpin,
                 freeSpinCount: settings.freeSpin.freeSpinCount,
+                isfreeSpinAdded: settings.freeSpin.freeSpinsAdded,
                 isJackpot: settings.isJackpot,
+                linesToEmit: settings._winData.winningLines,
             },
             PlayerData: {
                 Balance: gameInstance.getPlayerData().credits,

@@ -1,4 +1,3 @@
-import { gambleCardGame } from "../BaseSlotGame/newGambleGame";
 
 export interface SymbolType {
   Name: string;
@@ -6,7 +5,6 @@ export interface SymbolType {
   useWildSub: boolean;
   reelInstance: { [key: string]: number };
   multiplier: [number, number][];
-  isFreeSpinMultiplier: boolean
 }
 
 export type GameResult = number[][];
@@ -26,6 +24,7 @@ export interface SLLLLSETTINGS {
   Symbols: SymbolType[];
   resultSymbolMatrix: number[][];
   currentGamedata: any;
+  lineData: any[],
   _winData: any;
   currentBet: number;
   currentLines: number;
@@ -39,7 +38,12 @@ export interface SLLLLSETTINGS {
     SymbolID: number;
     useWild: boolean
   },
-  isDouble: boolean,
+
+  doubleLines: {
+    index: number,
+    payout: number
+  }[],
+  // isDouble:boolean,
   freeSpin: {
     SymbolName: string;
     SymbolID: number;
@@ -47,10 +51,12 @@ export interface SLLLLSETTINGS {
     isFreeSpin: boolean;
     isFreeSpinTriggered: boolean;
     freeSpinCount: number;
-    freeSpinMultipliers: number;
+    freeSpinMultiplier: number;
     freeSpinIncrement: number;
+    diamondCount: number;
+    diamondMultipliers: { range: [number, number], multiplier: number }[];
+    payout: number
   },
-  winningCombinations: WinningCombination[]
 }
 
 export interface FreeSpinResponse {

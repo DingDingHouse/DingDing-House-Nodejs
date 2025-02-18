@@ -176,11 +176,11 @@ export class UserController {
         { expiresIn: "7d" }
       );
 
-      res.cookie("userToken", token, {
-        maxAge: 1000 * 60 * 60 * 24 * 7,
-        httpOnly: true,
-        sameSite: "none",
-      });
+      // res.cookie("userToken", token, {
+      //   maxAge: 1000 * 60 * 60 * 24 * 7,
+      //   httpOnly: true,
+      //   sameSite: "none",
+      // });
 
 
       const socketUser = sessionManager.getPlayerPlatform(username);
@@ -414,9 +414,16 @@ export class UserController {
       }
 
       if (role) {
-        query.role = { $ne: currentUser.role, $eq: role };
-      } else if (!role) {
-        query.role = { $ne: currentUser.role };
+
+        query.role = { $eq: role }; // Strictly match only this role
+      }
+
+      // Prevent partial role matches when filtering
+      if (filter) {
+        query.$or = [
+          { username: { $regex: `^${filter}$`, $options: "i" } }, // Exact match
+          { role: { $eq: filter } } // Strict role match
+        ];
       }
 
       if (status) {

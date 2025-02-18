@@ -43,6 +43,16 @@ export interface SLSGSETTINGS {
     freeSpinSymbol:{
         symbolID: string,
         multiplier:any[];
+    },
+    male:{
+        SymbolName: string;
+        symbolID: string,
+        multiplier:any[];
+    },
+   female:{
+    SymbolName: string;
+        symbolID: string,
+        multiplier:any[];
     }
 }
 
@@ -50,4 +60,6 @@ export interface SLSGSETTINGS {
 export enum specialIcons {
     wild = "Wild",
     FreeSpin = "FreeSpin",
+    Male = "Male",
+    Female = "Female"
 }
