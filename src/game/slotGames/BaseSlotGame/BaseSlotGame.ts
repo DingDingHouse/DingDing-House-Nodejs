@@ -9,7 +9,10 @@ import { CheckResult } from "./CheckResult";
 import { GameSettings } from "./gameType";
 import { gambleCardGame } from "./newGambleGame";
 import { WinData } from "./WinData";
-import getRTP from "../../../utils/getRtp";
+import { exec } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as XLSX from 'xlsx';
 export default class BaseSlotGame implements RequiredSocketMethods {
   public settings: GameSettings;
   playerData = {
@@ -152,7 +155,7 @@ export default class BaseSlotGame implements RequiredSocketMethods {
         this.settings.BetPerLines = this.settings.currentGamedata.bets[response.data.currentBet];
         this.settings.currentBet =
           this.settings.currentGamedata.bets[response.data.currentBet] * this.settings.currentLines;
-        getRTP(response.data.spins, this);
+        this.getRTP(response.data.spins);
         break;
 
       case "GambleInit":
@@ -371,9 +374,18 @@ export default class BaseSlotGame implements RequiredSocketMethods {
       const result = new CheckResult(this);
       result.makeResultJson(ResultType.normal);
 
-      const winAmount = this.playerData.currentWining;
-      platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
+      const totalWinAmount = this.settings._winData.totalWinningAmount;
+      platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', totalWinAmount);
 
+      const jackpotAmount = this.settings._winData.specialFeatures.jackpot.amountWon || 0;
+      const scatterAmount = this.settings._winData.specialFeatures.scatter.amountWon || 0;
+      const bonusAmount = this.settings._winData.specialFeatures.bonus.amountWon || 0;
+
+      platformSession.currentGameSession.updateSpinField(spinId, "specialFeatures", {
+        jackpot: { amountWon: jackpotAmount },
+        scatter: { amountWon: scatterAmount },
+        bonus: { amountWon: bonusAmount },
+      });
     } catch (error) {
       console.error("Failed to generate spin results:", error);
       this.sendError("Spin error");
@@ -383,9 +395,76 @@ export default class BaseSlotGame implements RequiredSocketMethods {
 
 
 
+  private async getRTP(spins: number): Promise<void> {
+    try {
+      let spend: number = 0;
+      let won: number = 0;
+      this.playerData.rtpSpinCount = spins;
 
+      for (let i = 0; i < this.playerData.rtpSpinCount; i++) {
+        await this.spinResult();
+        spend = this.playerData.totalbet;
+        won = this.playerData.haveWon;
+        console.log(`Spin ${i + 1} completed. ${this.playerData.totalbet} , ${won}`);
+      }
+      let rtp = 0;
+      if (spend > 0) {
+        rtp = won / spend;
+      }
+      console.log('RTP calculated:', this.currentGameData.gameId, spins, rtp * 100 + '%');
+      const now = new Date();
+      // Store the data in an Excel file
+      const date = now.toISOString().split('T')[0];
 
+      const filePath = path.resolve(__dirname, '../../../../..', `simulator${date}.xlsx`);
 
+      const newData = {
+        username: this.currentGameData.username,
+        gameId: this.currentGameData.gameId,
+        spins,
+        rtp: rtp * 100,
+        date: new Date().toISOString()
+      };
+
+      let workbook;
+      if (fs.existsSync(filePath)) {
+        workbook = XLSX.readFile(filePath);
+      } else {
+        workbook = XLSX.utils.book_new();
+      }
+
+      let worksheet = workbook.Sheets['RTP Data'];
+      if (!worksheet) {
+        worksheet = XLSX.utils.json_to_sheet([]);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'RTP Data');
+      }
+
+      const existingData = XLSX.utils.sheet_to_json(worksheet);
+      existingData.push(newData);
+      const updatedWorksheet = XLSX.utils.json_to_sheet(existingData);
+      workbook.Sheets['RTP Data'] = updatedWorksheet;
+
+      XLSX.writeFile(workbook, filePath);
+
+      // Restart the server using pm2
+      exec('pm2 restart my-server', (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error restarting server: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          console.error(`stderr: ${stderr}`);
+          return;
+        }
+        console.log(`stdout: ${stdout}`);
+      });
+    } catch (error) {
+      console.error("Failed to calculate RTP:", error);
+      this.sendError("RTP calculation error");
+    }
+  }
+
+ 
 
 
 }
