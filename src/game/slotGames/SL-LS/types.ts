@@ -44,7 +44,9 @@ export interface SLLSSETTINGS {
     reels: any[][];
     Symbols: Symbol[];
     payoutCombination: any [][],
-    anyMatchCount:number;
+    // anyMatchCount:number;
+    jackpotPayout:number
+    jackpotCombination:number[],
     freeSpin: {
         freeSpinCount: number,
         freeSpinAwarded: number,
@@ -62,11 +64,7 @@ export interface SLLSSETTINGS {
         SymbolID: number;
         useWild: boolean;
     },
-    jackpot:{
-        SymbolName: string;
-        SymbolID: number;
-        useWild: boolean
-    },
+  
     bar3:{
         SymbolName: string;
         SymbolID: number;
