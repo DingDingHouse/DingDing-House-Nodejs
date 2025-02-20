@@ -165,36 +165,5 @@ export class SLLLL {
       console.error("Error in checkResult:", error);
     }
   }
-  // private gamebleTesting() {
-  //   console.log("gamble test");
-  //
-  //   //FIX: gamebleTesting , remove later
-  //   if (this.settings.gamble.isEnabled) {
-  //
-  //     let result = getGambleResult({ selected: "BLACK" });
-  //     this.decrementPlayerBalance(this.playerData.currentWining);
-  //     //calculate payout
-  //     switch (result.playerWon) {
-  //       case true:
-  //         this.playerData.currentWining *= 2
-  //         result.Balance = this.getPlayerData().credits + this.playerData.currentWining
-  //         result.currentWinning = this.playerData.currentWining
-  //         break;
-  //       case false:
-  //         result.currentWinning = 0;
-  //         result.Balance = this.getPlayerData().credits;
-  //         // this.settings._winData.totalWinningAmount = 0;
-  //         this.playerData.haveWon -= this.playerData.currentWining;
-  //         this.playerData.currentWining = 0;
-  //         break;
-  //     }
-  //     console.log("Gamble Result:", result);
-  //
-  //     this.playerData.haveWon = this.playerData.currentWining;
-  //     this.incrementPlayerBalance(this.playerData.currentWining);
-  //     console.log("Balance:", this.getPlayerData().credits);
-  //
-  //   }
-  // }
 }
 

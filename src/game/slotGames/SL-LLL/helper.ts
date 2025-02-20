@@ -106,6 +106,7 @@ export function sendInitData(gameInstance: SLLLL) {
       // Reel: reels,
       Bets: gameInstance.settings.currentGamedata.bets,
       lines: gameInstance.settings.currentGamedata.linesApiData,
+      daimondMultipliers: gameInstance.settings.freeSpin.diamondMultipliers,
     },
     UIData: UiInitData,
     PlayerData: {
@@ -328,8 +329,13 @@ export function checkWin(gameInstance: SLLLL): { payout: number; } {
   //NOTE: check and increment freespinmultipliers 
   // Update multipliers based on symbol occurrences, 
   if (settings.freeSpin.freeSpinCount > -1) {
-    const diamonds = findSymbol(gameInstance, settings.freeSpin.SymbolName)
+    const diamonds = findSymbol(gameInstance, settings.scatter.SymbolName)
     settings.freeSpin.diamondCount += diamonds.length
+    console.log("dia",diamonds)
+
+    const mult = getFreeSpinMultiplier(settings.freeSpin.diamondCount, settings.freeSpin.diamondMultipliers)
+    console.log("mult",mult);
+    settings.freeSpin.freeSpinMultiplier = mult
   }
   settings.lineData.forEach((line, index) => {
     const firstSymbolPositionLTR = line[0];
@@ -395,6 +401,7 @@ export function checkWin(gameInstance: SLLLL): { payout: number; } {
 
   if (settings.freeSpin.freeSpinCount > -1) {
     settings.freeSpin.payout = precisionRound(settings.freeSpin.payout + totalPayout, 4)
+    gameInstance.playerData.currentWining = precisionRound(totalPayout, 5)
   } else {
     gameInstance.playerData.currentWining = precisionRound(totalPayout, 5)
     gameInstance.playerData.haveWon = precisionRound(gameInstance.playerData.haveWon + gameInstance.playerData.currentWining, 5)
@@ -408,10 +415,13 @@ export function checkWin(gameInstance: SLLLL): { payout: number; } {
     settings.freeSpin.payout = 0
   }
   if (settings.freeSpin.freeSpinCount === 0) {
-    const mult = getFreeSpinMultiplier(settings.freeSpin.diamondCount, settings.freeSpin.diamondMultipliers)
-    settings.freeSpin.freeSpinMultiplier = mult
+    // const mult = getFreeSpinMultiplier(settings.freeSpin.diamondCount, settings.freeSpin.diamondMultipliers)
+    // console.log("mult",mult);
+    
+    // settings.freeSpin.freeSpinMultiplier = mult
 
-    gameInstance.playerData.currentWining = precisionRound(settings.freeSpin.payout * mult, 5)
+    // gameInstance.playerData.currentWining = precisionRound(settings.freeSpin.payout * mult, 5)
+    gameInstance.playerData.currentWining = precisionRound(settings.freeSpin.payout * settings.freeSpin.freeSpinMultiplier, 5)
     gameInstance.playerData.haveWon = precisionRound(gameInstance.playerData.haveWon + gameInstance.playerData.currentWining, 5)
     gameInstance.incrementPlayerBalance(gameInstance.playerData.currentWining);
 
@@ -438,6 +448,13 @@ export function checkWin(gameInstance: SLLLL): { payout: number; } {
   return { payout: totalPayout };
 }
 
+function convertStringArrayToNumberArray(input: string[][]): number[][] {
+  return input.flatMap(innerArray => 
+    innerArray.map(str => 
+      str.split(',').map(Number)
+    )
+  );
+}
 
 export function makeResultJson(gameInstance: SLLLL) {
   try {
@@ -448,7 +465,7 @@ export function makeResultJson(gameInstance: SLLLL) {
       GameData: {
         resultSymbols: settings.resultSymbolMatrix,
         linesToEmit: settings._winData.winningLines,
-        symbolsToEmit: settings._winData.winningSymbols,
+        symbolsToEmit: convertStringArrayToNumberArray( settings._winData.winningSymbols ),
         freeSpin: {
           isFreeSpin: settings.freeSpin.isFreeSpinTriggered,
           freeSpinCount: settings.freeSpin.freeSpinCount,

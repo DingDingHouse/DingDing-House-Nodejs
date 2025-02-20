@@ -50,6 +50,7 @@ export function initializeGameSettings(gameData: any, gameInstance: SLAOG) {
       featureType: "NONE" as FeatureType,
       featureValue: 0
     },
+    levelUpResponse: [],
     goldIndices: [],
     wild: {
       SymbolName: "",
@@ -93,6 +94,7 @@ export function makePayLines(gameInstance: SLAOG) {
     // }
   });
 }
+
 function handleSpecialSymbols(symbol: any, gameInstance: SLAOG) {
   switch (symbol.Name) {
     case specialIcons.wild:
@@ -455,6 +457,7 @@ function handleSmallWheel(gameInstance: SLAOG) {
   const featureIdx = getRandomValue(gameInstance, 'smallWheelFeature')
   if (featureIdx == 0 || featureIdx == 1) {
     settings.wheelFeature.featureType = "LEVELUP"
+    settings.levelUpResponse.push(true)
     handleLevelUp(gameInstance)
   } else if (featureIdx == 2 || featureIdx == 3) {
     settings.wheelFeature.featureType = "WILD"
@@ -469,6 +472,7 @@ function handleSmallWheel(gameInstance: SLAOG) {
     settings.wheelFeature.featureValue = settings.smallWheelFeature.featureValues[featureIdx]
   }
   console.log("small wheel feature", settings.wheelFeature);
+
 }
 
 
@@ -478,6 +482,7 @@ function handleMediumWheel(gameInstance: SLAOG) {
   const featureIdx = getRandomValue(gameInstance, 'mediumWheelFeature')
   if (featureIdx == 0 || featureIdx == 1) {
     settings.wheelFeature.featureType = "LEVELUP"
+    settings.levelUpResponse.push(true)
     handleLevelUp(gameInstance)
   } else if (featureIdx == 2 || featureIdx == 3) {
     settings.wheelFeature.featureType = "WILD"
@@ -498,7 +503,8 @@ function handleLargeWheel(gameInstance: SLAOG) {
   console.log("handleLargeWheel");
   const featureIdx = getRandomValue(gameInstance, 'largeWheelFeature')
   if (featureIdx == 0 || featureIdx == 1) {
-    settings.wheelFeature.featureType = "LEVELUP"
+    // settings.wheelFeature.featureType = "LEVELUP"
+    console.error("featureType cant be level up in large wheel ")
   } else if (featureIdx == 2 || featureIdx == 3) {
     settings.wheelFeature.featureType = "WILD"
     settings.wheelFeature.featureValue = settings.largeWheelFeature.featureValues[featureIdx]
@@ -548,7 +554,7 @@ function handleWildInit(gameInstance: SLAOG) {
 function handleWildSub(gameInstance: SLAOG) {
   const { settings } = gameInstance;
   console.log("handleWildSub");
-  
+
   if (settings.wheelFeature.featureType != "WILD") {
     console.error("featureType is not WILD")
     return
@@ -557,7 +563,7 @@ function handleWildSub(gameInstance: SLAOG) {
   for (let pos of wildPos) {
     settings.resultSymbolMatrix[pos.row][pos.col] = settings.wild.SymbolID
   }
-  
+
 }
 function handleFreespin(gameInstance: SLAOG) {
   const { settings } = gameInstance;
@@ -570,13 +576,13 @@ function handleFreespin(gameInstance: SLAOG) {
   settings.freeSpinCount += settings.wheelFeature.featureValue
 }
 function handleMultiplier(gameInstance: SLAOG) {
-  const { settings,playerData } = gameInstance;
+  const { settings, playerData } = gameInstance;
   console.log("handleMultiplier");
   if (settings.wheelFeature.featureType != "MULTIPLIER") {
     console.error("featureType is not MULTIPLIER")
     return
   }
-  playerData.currentWining = playerData.currentWining + (settings.wheelFeature.featureValue * (settings.BetPerLines ))
+  playerData.currentWining = playerData.currentWining + (settings.wheelFeature.featureValue * (settings.BetPerLines))
 }
 //CHECK WINS ON PAYLINES WITH OR WITHOUT WILD
 export function checkForWin(gameInstance: SLAOG) {
@@ -678,17 +684,19 @@ export function checkForWin(gameInstance: SLAOG) {
     console.log(settings.goldIndices);
 
     gameInstance.playerData.currentWining = precisionRound(totalPayout, 5);
-    if(settings.wheelFeature.featureType == "MULTIPLIER"){
+    if (settings.wheelFeature.featureType == "MULTIPLIER") {
       handleMultiplier(gameInstance)
     }
     gameInstance.playerData.haveWon = precisionRound(gameInstance.playerData.haveWon +
       gameInstance.playerData.currentWining, 5)
+    gameInstance.updatePlayerBalance(gameInstance.playerData.currentWining)
     makeResultJson(gameInstance)
     settings.isFreeSpin = false
+
     //reset feature settings 
     if (settings.wheelFeature.featureType != "WILD" || (
       settings.wheelFeature.featureType == "WILD" &&
-        !settings.wheelFeature.isTriggered
+      !settings.wheelFeature.isTriggered
     )) {
       settings.wheelFeature.featureType = "NONE"
       settings.wheelFeature.featureValue = 0
@@ -696,6 +704,8 @@ export function checkForWin(gameInstance: SLAOG) {
     settings.wheelFeature.isTriggered = false;
     settings.wheelFeature.wheelType = "NONE"
     settings.goldIndices = []
+
+    settings.levelUpResponse=[]
 
     settings._winData.winningLines = []
     settings._winData.winningSymbols = []
@@ -707,12 +717,12 @@ export function checkForWin(gameInstance: SLAOG) {
   }
 }
 
-//MAKERESULT JSON FOR FRONTENT SIDE
+//MAKERESULT JSON FOR FRONTEND 
 export function makeResultJson(gameInstance: SLAOG) {
   try {
     const { settings, playerData } = gameInstance;
     const credits = gameInstance.getPlayerData().credits
-    const Balance = credits.toFixed(2)
+    const Balance = credits.toFixed(3)
     const sendData = {
       GameData: {
         resultSymbols: settings.resultSymbolMatrix,
@@ -720,7 +730,9 @@ export function makeResultJson(gameInstance: SLAOG) {
         symbolsToEmit: settings._winData.winningSymbols,
         isFreeSpin: settings.isFreeSpin,
         freeSpinCount: settings.freeSpinCount,
-        wheel:{
+        goldIndices: settings.goldIndices,
+        levelUpResponse: settings.levelUpResponse,
+        wheel: {
           isTriggered: settings.wheelFeature.isTriggered,
           type: settings.wheelFeature.wheelType,
           featureType: settings.wheelFeature.featureType,
@@ -734,7 +746,7 @@ export function makeResultJson(gameInstance: SLAOG) {
         currentWining: playerData.currentWining
       }
     };
-    console.log(JSON.stringify(sendData));
+    console.log(JSON.stringify(sendData,null,2));
 
     gameInstance.sendMessage('ResultData', sendData);
   } catch (error) {

@@ -9,6 +9,12 @@ interface Symbol {
 }
 export type WheelType = "SMALL" | "MEDIUM" | "LARGE" | "NONE";
 export type FeatureType = "LEVELUP" | "MULTIPLIER" | "FREESPIN" | "WILD" | "NONE";
+export type WheelFeature = {
+  isTriggered: boolean,
+  wheelType: WheelType;
+  featureType: FeatureType;
+  featureValue: number;
+}
 // export type CardSuits = "Hearts" | "Diamonds" | "Spades" | "Clubs";
 export interface SLAOGSETTINGS {
   id: string;
@@ -24,9 +30,10 @@ export interface SLAOGSETTINGS {
   reels: any[][];
   Symbols: Symbol[];
   isFreeSpin: boolean;
-  wheelProb:number[];
-  goldSymbolProb:number[];
-  goldIndices:[number,number][]
+  wheelProb: number[];
+  goldSymbolProb: number[];
+  goldIndices: [number, number][]
+  levelUpResponse: boolean[],
   smallWheelFeature: {
     featureValues: number[],
     featureProbs: number[]
@@ -39,12 +46,7 @@ export interface SLAOGSETTINGS {
     featureValues: number[],
     featureProbs: number[]
   },
-  wheelFeature:{
-    isTriggered:boolean,
-    wheelType: WheelType;
-    featureType: FeatureType
-    featureValue: number
-  },
+  wheelFeature: WheelFeature;
   freeSpinCount: number;
   wild: {
     SymbolName: string;
