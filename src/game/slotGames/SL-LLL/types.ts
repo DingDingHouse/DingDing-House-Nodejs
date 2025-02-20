@@ -38,6 +38,7 @@ export interface SLLLLSETTINGS {
     SymbolID: number;
     useWild: boolean
   },
+
   doubleLines: {
     index: number,
     payout: number

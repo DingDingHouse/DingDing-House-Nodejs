@@ -98,10 +98,11 @@ export class SLPM {
                 this.settings.freeSpin.freeSpinStarted = false
                 this.settings.freeSpin.freeSpinCount = 0
             }
-            const winAmount = this.settings._winData.totalWinningAmount;
+           const winAmount = this.settings._winData.totalWinningAmount;
             platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
             console.log(winAmount, 'winAmount')
             this.settings._winData.totalWinningAmount = 0
+
         } catch (error) {
             this.sendError("Spin error");
             console.error("Failed to generate spin results:", error);
