@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -8,9 +41,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const sessionManager_1 = require("../../../dashboard/session/sessionManager");
 const gameUtils_1 = require("../../Utils/gameUtils");
@@ -19,7 +49,10 @@ const BonusGame_1 = require("./BonusGame");
 const CheckResult_1 = require("./CheckResult");
 const newGambleGame_1 = require("./newGambleGame");
 const WinData_1 = require("./WinData");
-const getRtp_1 = __importDefault(require("../../../utils/getRtp"));
+const child_process_1 = require("child_process");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const XLSX = __importStar(require("xlsx"));
 class BaseSlotGame {
     constructor(currentGameData) {
         this.currentGameData = currentGameData;
@@ -153,7 +186,7 @@ class BaseSlotGame {
                 this.settings.BetPerLines = this.settings.currentGamedata.bets[response.data.currentBet];
                 this.settings.currentBet =
                     this.settings.currentGamedata.bets[response.data.currentBet] * this.settings.currentLines;
-                (0, getRtp_1.default)(response.data.spins, this);
+                this.getRTP(response.data.spins);
                 break;
             case "GambleInit":
                 this.settings.gamble.resetGamble();
@@ -321,12 +354,84 @@ class BaseSlotGame {
                 new RandomResultGenerator_1.RandomResultGenerator(this);
                 const result = new CheckResult_1.CheckResult(this);
                 result.makeResultJson(gameUtils_1.ResultType.normal);
-                const winAmount = this.playerData.currentWining;
-                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', winAmount);
+                const totalWinAmount = this.settings._winData.totalWinningAmount;
+                platformSession.currentGameSession.updateSpinField(spinId, 'winAmount', totalWinAmount);
+                const jackpotAmount = this.settings._winData.specialFeatures.jackpot.amountWon || 0;
+                const scatterAmount = this.settings._winData.specialFeatures.scatter.amountWon || 0;
+                const bonusAmount = this.settings._winData.specialFeatures.bonus.amountWon || 0;
+                platformSession.currentGameSession.updateSpinField(spinId, "specialFeatures", {
+                    jackpot: { amountWon: jackpotAmount },
+                    scatter: { amountWon: scatterAmount },
+                    bonus: { amountWon: bonusAmount },
+                });
             }
             catch (error) {
                 console.error("Failed to generate spin results:", error);
                 this.sendError("Spin error");
+            }
+        });
+    }
+    getRTP(spins) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                let spend = 0;
+                let won = 0;
+                this.playerData.rtpSpinCount = spins;
+                for (let i = 0; i < this.playerData.rtpSpinCount; i++) {
+                    yield this.spinResult();
+                    spend = this.playerData.totalbet;
+                    won = this.playerData.haveWon;
+                    console.log(`Spin ${i + 1} completed. ${this.playerData.totalbet} , ${won}`);
+                }
+                let rtp = 0;
+                if (spend > 0) {
+                    rtp = won / spend;
+                }
+                console.log('RTP calculated:', this.currentGameData.gameId, spins, rtp * 100 + '%');
+                const now = new Date();
+                // Store the data in an Excel file
+                const date = now.toISOString().split('T')[0];
+                const filePath = path.resolve(__dirname, '../../../../..', `simulator${date}.xlsx`);
+                const newData = {
+                    username: this.currentGameData.username,
+                    gameId: this.currentGameData.gameId,
+                    spins,
+                    rtp: rtp * 100,
+                    date: new Date().toISOString()
+                };
+                let workbook;
+                if (fs.existsSync(filePath)) {
+                    workbook = XLSX.readFile(filePath);
+                }
+                else {
+                    workbook = XLSX.utils.book_new();
+                }
+                let worksheet = workbook.Sheets['RTP Data'];
+                if (!worksheet) {
+                    worksheet = XLSX.utils.json_to_sheet([]);
+                    XLSX.utils.book_append_sheet(workbook, worksheet, 'RTP Data');
+                }
+                const existingData = XLSX.utils.sheet_to_json(worksheet);
+                existingData.push(newData);
+                const updatedWorksheet = XLSX.utils.json_to_sheet(existingData);
+                workbook.Sheets['RTP Data'] = updatedWorksheet;
+                XLSX.writeFile(workbook, filePath);
+                // Restart the server using pm2
+                (0, child_process_1.exec)('pm2 restart my-server', (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Error restarting server: ${error.message}`);
+                        return;
+                    }
+                    if (stderr) {
+                        console.error(`stderr: ${stderr}`);
+                        return;
+                    }
+                    console.log(`stdout: ${stdout}`);
+                });
+            }
+            catch (error) {
+                console.error("Failed to calculate RTP:", error);
+                this.sendError("RTP calculation error");
             }
         });
     }

@@ -33,7 +33,7 @@ function initializeGameSettings(gameData, gameInstance) {
         currentLines: 0,
         BetPerLines: 0,
         reels: [],
-        anyMatchCount: gameData.gameSettings.anyPayout,
+        // anyMatchCount:gameData.gameSettings.anyPayout,
         freeSpin: {
             freeSpinAwarded: gameData.gameSettings.freeSpinCount,
             freeSpinCount: 0,
@@ -41,17 +41,14 @@ function initializeGameSettings(gameData, gameInstance) {
             freeSpinPayout: 0,
             freeSpinsAdded: false,
         },
+        jackpotPayout: gameData.gameSettings.jackpotPayout,
+        jackpotCombination: gameData.gameSettings.jackpotCombination,
         wild: {
             SymbolName: "",
             SymbolID: -1,
             useWild: false,
         },
         bonus: {
-            SymbolName: "",
-            SymbolID: -1,
-            useWild: false,
-        },
-        jackpot: {
             SymbolName: "",
             SymbolID: -1,
             useWild: false,
@@ -82,7 +79,7 @@ function initializeGameSettings(gameData, gameInstance) {
 function generateInitialReel(gameSettings) {
     const reels = [[], [], [], [], [], [], []];
     gameSettings.Symbols.forEach((symbol) => {
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 3; i++) {
             const count = symbol.reelInstance[i] || 0;
             for (let j = 0; j < count; j++) {
                 reels[i].push(symbol.Id);
@@ -121,6 +118,7 @@ function sendInitData(gameInstance) {
         GameData: {
             Reel: reels,
             // BonusReel: bonusReels,
+            paytable: gameInstance.settings.payoutCombination,
             linesApiData: gameInstance.settings.currentGamedata.linesApiData,
             Bets: gameInstance.settings.currentGamedata.bets,
             baseBet: gameInstance.settings.baseBetAmount,
@@ -169,24 +167,31 @@ function checkForWin(gameInstance) {
                     return symbol;
                 });
                 const payout = calculatePayoutForCombination(processedSymbols, settings.payoutCombination);
-                console.log(payout);
                 totalPayout += payout * gameInstance.settings.BetPerLines;
-                settings._winData.winningLines.push(index);
-                winningLines.push({
-                    line,
-                    symbol: firstSymbol,
-                    multiplier: payout,
-                    matchCount,
-                });
-                console.log(`Line ${index + 1}:`, line);
-                console.log(`Payout for Line ${index + 1}:`, 'payout');
-                const formattedIndices = winMatchedIndices.map(({ col, row }) => `${col},${row}`);
-                const validIndices = formattedIndices.filter(index => index.length > 2);
-                if (validIndices.length > 0) {
-                    gameInstance.settings._winData.winningSymbols.push(validIndices);
+                if (payout > 0) {
+                    console.log(payout);
+                    settings._winData.winningLines.push(index);
+                    winningLines.push({
+                        line,
+                        symbol: firstSymbol,
+                        multiplier: payout,
+                        matchCount,
+                    });
+                    console.log(`Line ${index + 1}:`, line);
+                    console.log(`Payout for Line ${index + 1}:`, 'payout');
+                    const formattedIndices = winMatchedIndices.map(({ col, row }) => `${col},${row}`);
+                    const validIndices = formattedIndices.filter(index => index.length > 2);
+                    if (validIndices.length > 0) {
+                        gameInstance.settings._winData.winningSymbols.push(validIndices);
+                    }
                 }
             }
         });
+        if (checkForJackpot(gameInstance)) {
+            console.log("JACKPOT TRIGGERED!");
+            totalPayout = settings.jackpotPayout * gameInstance.settings.BetPerLines;
+            settings.isJackpot = true;
+        }
         gameInstance.playerData.currentWining += totalPayout;
         gameInstance.playerData.haveWon = parseFloat((gameInstance.playerData.haveWon + parseFloat(gameInstance.playerData.currentWining.toFixed(4))).toFixed(4));
         gameInstance.updatePlayerBalance(gameInstance.playerData.currentWining);
@@ -283,6 +288,14 @@ function arraysMatchForPayout(matchedSymbols, combination) {
         return set1.size === set2.size && [...set1].every(value => set2.has(value));
     }
 }
+function checkForJackpot(gameInstance) {
+    const { settings } = gameInstance;
+    const jackpotCombination = new Set(settings.jackpotCombination);
+    return settings.resultSymbolMatrix.every(row => {
+        const uniqueSymbols = new Set(row);
+        return uniqueSymbols.size === 3 && [...uniqueSymbols].every((symbol) => jackpotCombination.has(symbol));
+    });
+}
 /**
  * Configures game settings based on the special symbol provided.
  * Updates the relevant symbol properties in the game instance based on the type of the special symbol.
@@ -301,11 +314,6 @@ function handleSpecialSymbols(symbol, gameInstance) {
             gameInstance.settings.bonus.SymbolName = symbol.Name;
             gameInstance.settings.bonus.SymbolID = symbol.Id;
             gameInstance.settings.bonus.useWild = true;
-            break;
-        case types_1.specialIcons.jackpot:
-            gameInstance.settings.jackpot.SymbolName = symbol.Name;
-            gameInstance.settings.jackpot.SymbolID = symbol.Id;
-            gameInstance.settings.jackpot.useWild = false;
             break;
         case types_1.specialIcons.bar3:
             gameInstance.settings.bar3.SymbolName = symbol.Name;
@@ -354,6 +362,7 @@ function makeResultJson(gameInstance) {
         };
         gameInstance.sendMessage('ResultData', sendData);
         console.log(sendData, "send Data");
+        console.log(sendData.GameData.symbolsToEmit, "symbolsToEmit");
     }
     catch (error) {
         console.error("Error generating result JSON or sending message:", error);

@@ -25,7 +25,7 @@ class SLLLL {
             totalSpin: 0,
             currentPayout: 0
         };
-        console.log("Initializing SLLOL game");
+        console.log("Initializing SLLLL game");
         // console.log("currentGameData:", JSON.stringify(currentGameData, null, 2));
         try {
             this.settings = (0, helper_1.initializeGameSettings)(currentGameData, this);
@@ -37,7 +37,7 @@ class SLLLL {
             console.log("credits : ", this.getPlayerData().credits);
         }
         catch (error) {
-            console.error("Error initializing SLLOL game:", error);
+            console.error("Error initializing SLLLL game:", error);
         }
     }
     get initSymbols() {
@@ -98,7 +98,7 @@ class SLLLL {
                     return;
                 }
                 //deduct only when freespin is not triggered
-                if (this.settings.freeSpin.freeSpinCount <= 0) {
+                if (!this.settings.freeSpin.isFreeSpin) {
                     this.decrementPlayerBalance((0, utils_1.precisionRound)(this.settings.currentBet, 5));
                     this.playerData.totalbet += Number(this.settings.currentBet.toFixed(5));
                 }

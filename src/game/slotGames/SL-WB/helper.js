@@ -416,12 +416,12 @@ function getRandomValue(gameInstance, type) {
         probabilities = settings === null || settings === void 0 ? void 0 : settings.smallWheelFeature.featureProbs;
     }
     else if (type === 'mediumFreespin') {
-        values = settings === null || settings === void 0 ? void 0 : settings.smallWheelFeature.featureValues;
-        probabilities = settings === null || settings === void 0 ? void 0 : settings.smallWheelFeature.featureProbs;
+        values = settings === null || settings === void 0 ? void 0 : settings.mediumWheelFeature.featureValues;
+        probabilities = settings === null || settings === void 0 ? void 0 : settings.mediumWheelFeature.featureProbs;
     }
     else if (type === 'largeFreespin') {
-        values = settings === null || settings === void 0 ? void 0 : settings.smallWheelFeature.featureValues;
-        probabilities = settings === null || settings === void 0 ? void 0 : settings.smallWheelFeature.featureProbs;
+        values = settings === null || settings === void 0 ? void 0 : settings.largeWheelFeature.featureValues;
+        probabilities = settings === null || settings === void 0 ? void 0 : settings.largeWheelFeature.featureProbs;
     }
     else {
         throw new Error("Invalid type, expected 'coin' or 'freespin'");

@@ -63,7 +63,8 @@ class SLFLC {
                 this.getRTP(response.data.spins || 1);
                 break;
             case "FREESPINOPTION":
-                if (response.data.option) {
+                if (response.data.option > -1) {
+                    console.log(response.data.option, "freespin option ");
                     if (response.data.option >= this.settings.freespin.options.length ||
                         response.data.option < 0 ||
                         isNaN(response.data.option)) {
@@ -71,6 +72,7 @@ class SLFLC {
                     }
                     else {
                         this.settings.freespin.optionIndex = parseInt(response.data.option);
+                        this.settings.freespinCount = this.settings.freespin.options[this.settings.freespin.optionIndex].count;
                     }
                 }
                 else {
@@ -102,7 +104,7 @@ class SLFLC {
                     this.playerData.totalbet += currentBet;
                     this.deductPlayerBalance(currentBet);
                 }
-                if (this.settings.freespinCount >= 0) {
+                if (this.settings.freespinCount >= 0 && this.settings.bonus.spinCount < 0) {
                     this.settings.freespinCount--;
                 }
                 const spinId = platformSession.currentGameSession.createSpin();

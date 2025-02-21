@@ -53,6 +53,7 @@ function initializeGameSettings(gameData, gameInstance) {
             featureType: "NONE",
             featureValue: 0
         },
+        levelUpResponse: [],
         goldIndices: [],
         wild: {
             SymbolName: "",
@@ -411,6 +412,7 @@ function handleSmallWheel(gameInstance) {
     const featureIdx = getRandomValue(gameInstance, 'smallWheelFeature');
     if (featureIdx == 0 || featureIdx == 1) {
         settings.wheelFeature.featureType = "LEVELUP";
+        settings.levelUpResponse.push(true);
         handleLevelUp(gameInstance);
     }
     else if (featureIdx == 2 || featureIdx == 3) {
@@ -435,6 +437,7 @@ function handleMediumWheel(gameInstance) {
     const featureIdx = getRandomValue(gameInstance, 'mediumWheelFeature');
     if (featureIdx == 0 || featureIdx == 1) {
         settings.wheelFeature.featureType = "LEVELUP";
+        settings.levelUpResponse.push(true);
         handleLevelUp(gameInstance);
     }
     else if (featureIdx == 2 || featureIdx == 3) {
@@ -458,7 +461,8 @@ function handleLargeWheel(gameInstance) {
     console.log("handleLargeWheel");
     const featureIdx = getRandomValue(gameInstance, 'largeWheelFeature');
     if (featureIdx == 0 || featureIdx == 1) {
-        settings.wheelFeature.featureType = "LEVELUP";
+        // settings.wheelFeature.featureType = "LEVELUP"
+        console.error("featureType cant be level up in large wheel ");
     }
     else if (featureIdx == 2 || featureIdx == 3) {
         settings.wheelFeature.featureType = "WILD";
@@ -630,6 +634,7 @@ function checkForWin(gameInstance) {
         }
         gameInstance.playerData.haveWon = (0, utils_1.precisionRound)(gameInstance.playerData.haveWon +
             gameInstance.playerData.currentWining, 5);
+        gameInstance.updatePlayerBalance(gameInstance.playerData.currentWining);
         makeResultJson(gameInstance);
         settings.isFreeSpin = false;
         //reset feature settings 
@@ -641,6 +646,7 @@ function checkForWin(gameInstance) {
         settings.wheelFeature.isTriggered = false;
         settings.wheelFeature.wheelType = "NONE";
         settings.goldIndices = [];
+        settings.levelUpResponse = [];
         settings._winData.winningLines = [];
         settings._winData.winningSymbols = [];
         return winningLines;
@@ -650,12 +656,12 @@ function checkForWin(gameInstance) {
         return [];
     }
 }
-//MAKERESULT JSON FOR FRONTENT SIDE
+//MAKERESULT JSON FOR FRONTEND 
 function makeResultJson(gameInstance) {
     try {
         const { settings, playerData } = gameInstance;
         const credits = gameInstance.getPlayerData().credits;
-        const Balance = credits.toFixed(2);
+        const Balance = credits.toFixed(3);
         const sendData = {
             GameData: {
                 resultSymbols: settings.resultSymbolMatrix,
@@ -663,6 +669,8 @@ function makeResultJson(gameInstance) {
                 symbolsToEmit: settings._winData.winningSymbols,
                 isFreeSpin: settings.isFreeSpin,
                 freeSpinCount: settings.freeSpinCount,
+                goldIndices: settings.goldIndices,
+                levelUpResponse: settings.levelUpResponse,
                 wheel: {
                     isTriggered: settings.wheelFeature.isTriggered,
                     type: settings.wheelFeature.wheelType,
@@ -677,7 +685,7 @@ function makeResultJson(gameInstance) {
                 currentWining: playerData.currentWining
             }
         };
-        console.log(JSON.stringify(sendData));
+        console.log(JSON.stringify(sendData, null, 2));
         gameInstance.sendMessage('ResultData', sendData);
     }
     catch (error) {
