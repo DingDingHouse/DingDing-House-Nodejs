@@ -80,6 +80,11 @@ export interface SLLSSETTINGS {
         SymbolID: number;
         useWild: boolean
     },
+    blank:{
+        SymbolName: string;
+        SymbolID: number;
+        useWild: boolean
+    },
     isJackpot : boolean,
 }
 
@@ -90,5 +95,6 @@ export enum specialIcons {
      jackpot = "Jackpot",
      bar3 = "Bar3",
      bar2 = "Bar2",
-     bar1 = "Bar1"
+     bar1 = "Bar1",
+     blank ="blank"
 }

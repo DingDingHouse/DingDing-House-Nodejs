@@ -70,8 +70,7 @@ export class SLBS {
     private prepareSpin(data: any) {
         this.settings.currentLines = data.currentLines;
         this.settings.BetPerLines = this.settings.currentGamedata.bets[data.currentBet];
-        this.settings.currentBet = this.settings.BetPerLines;
-    }
+        this.settings.currentBet = this.settings.BetPerLines * this.settings.currentLines;    }
 
     public async spinResult(): Promise<void> {
         try {
