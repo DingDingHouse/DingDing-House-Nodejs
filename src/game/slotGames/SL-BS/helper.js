@@ -157,14 +157,14 @@ function checkForWin(gameInstance) {
                 settings.freeSpin.useFreeSpin = false;
             }
         }
-        const { isWinning, totalPayout, matchedIndices } = checkSymbolOcuurence(gameInstance);
+        const { iswinning, totalpayout, matchedindices } = checksymbolocuurence(gameInstance);
         //  console.log(totalPayout, "total");
-        const formattedIndices = matchedIndices.map(({ col, row }) => `${col},${row}`);
+        const formattedIndices = matchedindices.map(({ col, row }) => `${col},${row}`);
         const validIndices = formattedIndices.filter(index => index.length > 2);
         if (validIndices.length > 0) {
             gameInstance.settings._winData.winningSymbols.push(validIndices);
         }
-        gameInstance.playerData.currentWining += totalPayout;
+        gameInstance.playerData.currentWining += totalpayout;
         gameInstance.playerData.haveWon = parseFloat((gameInstance.playerData.haveWon + parseFloat(gameInstance.playerData.currentWining.toFixed(4))).toFixed(4));
         gameInstance.updatePlayerBalance(gameInstance.playerData.currentWining);
         makeResultJson(gameInstance);
@@ -181,58 +181,74 @@ function checkForWin(gameInstance) {
         return [];
     }
 }
-function checkSymbolOcuurence(gameInstance) {
-    const { settings } = gameInstance;
-    const matchedIndices = [];
-    let totalPayout = 0;
-    let isWinning = false; // Track if there's a winning condition
-    // Process only row index 1
-    if (settings.resultSymbolMatrix[1]) {
-        const row = settings.resultSymbolMatrix[1];
-        const hasWild = row.includes(settings.wild.SymbolID);
-        if (hasWild) {
-            const nonWildSymbols = row.filter((symbol) => symbol !== settings.wild.SymbolID);
-            const allNonWildSame = nonWildSymbols.every((symbol) => symbol === nonWildSymbols[0]);
-            if (allNonWildSame &&
-                nonWildSymbols.length > 0 &&
-                nonWildSymbols[0] !== settings.jackpot.SymbolID &&
-                nonWildSymbols[0] !== settings.bonus.SymbolID) {
-                row.fill(nonWildSymbols[0]); // Replace row with the non-wild symbol
+function checksymbolocuurence(gameinstance) {
+    const { settings } = gameinstance;
+    const matchedindices = [];
+    let totalpayout = 0;
+    let iswinning = false; // Track if there's a winning condition
+    // Iterate through all lines
+    for (let lineIndex = 0; lineIndex < settings.lineData.length; lineIndex++) {
+        const line = settings.lineData[lineIndex];
+        // Extract the symbols from the matrix based on this line
+        const rowSymbols = line.map((row, col) => { var _a; return (_a = settings.resultSymbolMatrix[row]) === null || _a === void 0 ? void 0 : _a[col]; });
+        if (!rowSymbols.every((symbol) => symbol !== undefined)) {
+            continue; // Skip invalid lines
+        }
+        // Check for wilds
+        const haswild = rowSymbols.includes(settings.wild.SymbolID);
+        if (haswild) {
+            const nonwildsymbols = rowSymbols.filter((symbol) => symbol !== settings.wild.SymbolID);
+            const allnonwildsame = nonwildsymbols.every((symbol) => symbol === nonwildsymbols[0]);
+            if (allnonwildsame &&
+                nonwildsymbols.length > 0 &&
+                nonwildsymbols[0] !== settings.jackpot.SymbolID &&
+                nonwildsymbols[0] !== settings.bonus.SymbolID) {
+                rowSymbols.fill(nonwildsymbols[0]); // Replace with non-wild symbol
             }
         }
-        const allSame = row.every((symbol) => symbol === row[0]);
-        const isSpecialCombination = row.every((symbol) => [settings.bar3.SymbolID, settings.bar2.SymbolID, settings.bar1.SymbolID].includes(symbol));
-        if (allSame || isSpecialCombination) {
-            isWinning = true; // Mark as winning row
-            const matchedSymbol = row[0];
-            if ((matchedSymbol === settings.bonus.SymbolID) && !settings.freeSpin.useFreeSpin) {
-                settings.freeSpin.useFreeSpin = true;
-                settings.freeSpin.freeSpinsAdded = true;
-                settings.freeSpin.freeSpinCount = settings.freeSpin.freeSpinAwarded;
+        // Check if all symbols are the same or match special combination
+        const allsame = rowSymbols.every((symbol) => symbol === rowSymbols[0]);
+        const isspecialcombination = rowSymbols.every((symbol) => [settings.bar3.SymbolID, settings.bar2.SymbolID, settings.bar1.SymbolID].includes(symbol));
+        if (allsame || isspecialcombination) {
+            iswinning = true; // Mark as winning row
+            const matchedsymbol = rowSymbols[0];
+            // Handle bonus and free spins
+            if (matchedsymbol === settings.bonus.SymbolID) {
+                if (!settings.freeSpin.useFreeSpin) {
+                    settings.freeSpin.useFreeSpin = true;
+                    settings.freeSpin.freeSpinsAdded = true;
+                    settings.freeSpin.freeSpinCount = settings.freeSpin.freeSpinAwarded;
+                }
+                else {
+                    settings.freeSpin.freeSpinCount = settings.freeSpin.freeSpinAwarded;
+                    settings.freeSpin.freeSpinsAdded = true;
+                }
             }
-            else if ((matchedSymbol === settings.bonus.SymbolID) && settings.freeSpin.useFreeSpin) {
-                settings.freeSpin.freeSpinCount = settings.freeSpin.freeSpinAwarded;
-                settings.freeSpin.freeSpinsAdded = true;
-            }
-            if (matchedSymbol === settings.jackpot.SymbolID) {
+            // Handle jackpot
+            if (matchedsymbol === settings.jackpot.SymbolID) {
                 settings.isJackpot = true;
             }
-            if (allSame) {
-                const symbol = settings.currentGamedata.Symbols.find((symbol) => symbol.Id === matchedSymbol);
-                const symbolPayout = parseFloat((symbol === null || symbol === void 0 ? void 0 : symbol.payout) || "0");
-                const payOut = symbolPayout * settings.currentBet;
-                totalPayout += payOut;
+            // Calculate payouts
+            if (allsame) {
+                const symbol = settings.currentGamedata.Symbols.find((symbol) => symbol.Id === matchedsymbol);
+                const symbolpayout = parseFloat((symbol === null || symbol === void 0 ? void 0 : symbol.payout) || "0");
+                const payout = symbolpayout * settings.BetPerLines;
+                totalpayout += payout;
             }
-            else if (isSpecialCombination) {
-                const payout = settings.anyMatchCount * settings.currentBet;
-                totalPayout += payout;
+            else if (isspecialcombination) {
+                const payout = settings.anyMatchCount * settings.BetPerLines;
+                totalpayout += payout;
             }
-            settings._winData.winningLines.push(1);
-            matchedIndices.push({ col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 });
+            // Save winning line index
+            settings._winData.winningLines.push(lineIndex);
+            // Save matched indices
+            for (let col = 0; col < line.length; col++) {
+                matchedindices.push({ col, row: line[col] });
+            }
         }
     }
-    console.log(totalPayout);
-    return { isWinning, totalPayout, matchedIndices };
+    console.log({ iswinning, totalpayout, matchedindices });
+    return { iswinning, totalpayout, matchedindices };
 }
 /**
  * Configures game settings based on the special symbol provided.

@@ -69,7 +69,7 @@ class SLBS {
     prepareSpin(data) {
         this.settings.currentLines = data.currentLines;
         this.settings.BetPerLines = this.settings.currentGamedata.bets[data.currentBet];
-        this.settings.currentBet = this.settings.BetPerLines;
+        this.settings.currentBet = this.settings.BetPerLines * this.settings.currentLines;
     }
     spinResult() {
         return __awaiter(this, void 0, void 0, function* () {

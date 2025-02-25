@@ -9,4 +9,5 @@ var specialIcons;
     specialIcons["bar3"] = "Bar3";
     specialIcons["bar2"] = "Bar2";
     specialIcons["bar1"] = "Bar1";
+    specialIcons["blank"] = "blank";
 })(specialIcons || (exports.specialIcons = specialIcons = {}));

@@ -30,6 +30,7 @@ const checkUser_1 = require("./dashboard/middleware/checkUser");
 const ToggleRoutes_1 = __importDefault(require("./dashboard/Toggle/ToggleRoutes"));
 const checkRole_1 = require("./dashboard/middleware/checkRole");
 const sessionRoutes_1 = __importDefault(require("./dashboard/session/sessionRoutes"));
+const script_1 = require("./dashboard/games/script");
 const app = (0, express_1.default)();
 //Cloudinary configs
 app.use(express_1.default.json({ limit: "25mb" }));
@@ -86,5 +87,6 @@ const io = new socket_io_1.Server(server, {
     },
 });
 (0, socket_1.default)(io);
+(0, script_1.addOrderToExistingGames)();
 app.use(globalHandler_1.default);
 exports.default = server;

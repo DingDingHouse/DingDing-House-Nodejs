@@ -58,6 +58,7 @@ class TransactionController {
                 const typeQuery = req.query.type;
                 const startDate = req.query.startDate;
                 const endDate = req.query.endDate;
+                // console.log(startDate, endDate);
                 let parsedData = {
                     role: "",
                     status: "",
@@ -78,6 +79,9 @@ class TransactionController {
                     }
                 }
                 let query = {};
+                if (!query.$and) {
+                    query.$and = []; // Ensure $and array exists
+                }
                 // Handle date range filtering
                 if (startDate || endDate) {
                     const dateFilter = {};
@@ -103,15 +107,11 @@ class TransactionController {
                     }
                     query.$and.push({ createdAt: dateFilter });
                 }
-                if (role !== 'admin' || !typeQuery) {
-                    query.$and = [
-                        {
-                            $or: [{ debtor: username }, { creditor: username }],
-                        },
-                    ];
-                }
-                else {
-                    query.$and = [];
+                // Handle role-based filtering without overwriting $and
+                if (role !== "admin" || !typeQuery) {
+                    query.$and.push({
+                        $or: [{ debtor: username }, { creditor: username }],
+                    });
                 }
                 if (typeQuery) {
                     query.$and.push({ type: typeQuery });
@@ -171,6 +171,7 @@ class TransactionController {
                     .sort({ createdAt: sortOrder })
                     .skip((page - 1) * limit)
                     .limit(limit);
+                // console.log(totalTransactions);
                 res.status(200).json({
                     totalTransactions,
                     totalPages,
