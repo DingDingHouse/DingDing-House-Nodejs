@@ -11,6 +11,7 @@ import createHttpError from "http-errors";
 import { socketConnectionData } from "./utils/utils";
 import { sessionManager } from "./dashboard/session/sessionManager";
 import { GameSession } from "./dashboard/session/gameSession";
+import { pubClient } from "./redisClient";
 
 
 
@@ -62,6 +63,8 @@ export default class PlayerSocket {
     socket: Socket,
     managerName: string
   ) {
+
+
 
 
     const existing = sessionManager.getPlayerPlatform(username);
@@ -128,6 +131,7 @@ export default class PlayerSocket {
     }
 
     await sessionManager.startPlatformSession(this)
+ 
     this.platformData.socket = socket;
     this.platformData.platformId = socket.handshake.auth.platformId;
     this.messageHandler(false);

@@ -7,12 +7,25 @@ import { messageType } from "./game/Utils/gameUtils";
 import Manager from "./Manager";
 import { sessionManager } from "./dashboard/session/sessionManager";
 import { IUser } from "./dashboard/users/userType";
-
+import { pubClient } from "./redisClient";
 
 interface DecodedToken {
     username: string;
     role?: string;
 }
+
+const extractStickySessionCookie = (cookieHeader?: string): string | null => {
+    if (!cookieHeader) return null;
+
+    const cookies = cookieHeader.split(";").map(cookie => cookie.trim());
+    for (const cookie of cookies) {
+        if (cookie.startsWith("AWSALB=") || cookie.startsWith("AWSALBCORS=")) {
+            return cookie.split("=")[1];
+        }
+    }
+    return null;
+};
+
 
 const verifySocketToken = (socket: Socket): Promise<DecodedToken> => {
     return new Promise((resolve, reject) => {
@@ -55,20 +68,44 @@ const getManagerDetails = async (username: string) => {
 
 }
 
-const handlePlayerConnection = async (socket: Socket, decoded: DecodedToken, userAgent: string) => {
+
+
+const handlePlayerConnection = async (socket: Socket, decoded: { username: string; role?: string }, userAgent: string) => {
     const username = decoded.username;
     const platformId = socket.handshake.auth.platformId;
     const origin = socket.handshake.auth.origin;
     const gameId = socket.handshake.auth.gameId;
     const { credits, status, managerName } = await getPlayerDetails(username);
 
-    let existingPlayer = sessionManager.getPlayerPlatform(username)
+    let existingPlayer = sessionManager.getPlayerPlatform(username);
+    let sessionData: any = {};
 
-    if (existingPlayer) {
-        // Platform connection handling
-        if (origin) {
+    const stickySessionCookie = extractStickySessionCookie(socket.handshake.headers.cookie);
+
+    const redisSession = await pubClient.get(`socket:${username}`);
+    if (redisSession) {
+        try {
+            sessionData = JSON.parse(redisSession);
+        } catch (error) {
+            console.error(` Failed to parse Redis session data for ${username}:`, error);
+            sessionData = {};
+        }
+    }
+
+    const isReconnecting = sessionData.platformSocketId === socket.id || sessionData.gameSocketId === socket.id;
+
+    if (sessionData.stickySessionCookie && sessionData.stickySessionCookie !== stickySessionCookie) {
+        console.log(` Sticky session mismatch for ${username}. Possible instance switch detected.`);
+    }
+
+    if (sessionData.stickySessionCookie && sessionData.stickySessionCookie === stickySessionCookie) {
+        console.log(` Sticky session match found for ${username}, restoring session.`);
+    }
+
+    if (origin) {
+        if (existingPlayer) {
             if (existingPlayer.platformData.platformId !== platformId) {
-                console.log(`Duplicate platform detected for ${username}`);
+                console.log(` Duplicate platform detected for ${username}`);
                 socket.emit("alert", "NewTab");
                 socket.disconnect(true);
                 return;
@@ -81,40 +118,53 @@ const handlePlayerConnection = async (socket: Socket, decoded: DecodedToken, use
                 return;
             }
 
-            console.log(`Reinitializing platform connection for ${username}`);
+            console.log(` Reinitializing platform connection for ${username}`);
             existingPlayer.initializePlatformSocket(socket);
             existingPlayer.sendAlert(`Platform reconnected for ${username}`, false);
+
+            sessionData.platformSocketId = socket.id;
+            sessionData.stickySessionCookie = stickySessionCookie;
+            sessionData.connectedAt = new Date().toISOString();
+            await pubClient.set(`socket:${username}`, JSON.stringify(sessionData));
+
             return;
         }
 
-
-        // Game connection handling
-        if (gameId || !gameId) {
-            if (!existingPlayer.platformData.socket || !existingPlayer.platformData.socket.connected) {
-                console.log("Platform connection required before joining a game.");
-                socket.emit(messageType.ERROR, "Platform connection required before joining a game.");
-                socket.disconnect(true);
-                return;
-            }
-
-            console.log("Game connection attempt detected, ensuring platform stability");
-            await existingPlayer.updateGameSocket(socket);
-            existingPlayer.sendAlert(`Game initialized for ${username} in game ${gameId}`);
-            return;
-        }
-    }
-
-    // New platform connection
-    if (origin) {
+        console.log(`New platform connection for ${username}`);
         const newUser = new Player(username, decoded.role, status, credits, userAgent, socket, managerName);
         newUser.platformData.platformId = platformId;
         newUser.sendAlert(`Player initialized for ${username} on platform ${origin}`, false);
+
+        sessionData.platformSocketId = socket.id;
+        sessionData.stickySessionCookie = stickySessionCookie;
+        sessionData.connectedAt = new Date().toISOString();
+        await pubClient.set(`socket:${username}`, JSON.stringify(sessionData));
+
         return;
     }
 
-    // Game connection without existing platform connection
+    if (gameId) {
+        if (!existingPlayer || !existingPlayer.platformData.socket || !existingPlayer.platformData.socket.connected) {
+            console.log(" Platform connection required before joining a game.");
+            socket.emit(messageType.ERROR, "Platform connection required before joining a game.");
+            socket.disconnect(true);
+            return;
+        }
+
+        console.log(`Game connection detected for ${username}, ensuring platform stability`);
+        await existingPlayer.updateGameSocket(socket);
+        existingPlayer.sendAlert(`Game initialized for ${username} in game ${gameId}`);
+
+        sessionData.gameSocketId = socket.id;
+        sessionData.stickySessionCookie = stickySessionCookie;
+        sessionData.connectedAt = new Date().toISOString();
+        await pubClient.set(`socket:${username}`, JSON.stringify(sessionData));
+
+        return;
+    }
+
     if (process.env.NODE_ENV === "testing") {
-        console.log("Testing environment detected. Creating platform socket for the player.");
+        console.log(" Testing environment detected. Creating platform socket for the player.");
 
         const mockPlatformSocket = {
             handshake: { auth: { platformId: `test-platform-${username}` } },
@@ -136,15 +186,22 @@ const handlePlayerConnection = async (socket: Socket, decoded: DecodedToken, use
 
         testPlayer.platformData.platformId = `test-platform-${username}`;
         await testPlayer.updateGameSocket(socket);
+
+        sessionData.gameSocketId = socket.id;
+        sessionData.stickySessionCookie = stickySessionCookie;
+        sessionData.connectedAt = new Date().toISOString();
+        await pubClient.set(`socket:${username}`, JSON.stringify(sessionData));
+
         return;
-
-
     }
 
-    // Invalid connection attempt
+    console.log(` Invalid connection attempt by ${username}`);
     socket.emit(messageType.ERROR, "Invalid connection attempt.");
     socket.disconnect(true);
 };
+
+
+
 
 const handleManagerConnection = async (socket: Socket, decoded: DecodedToken, userAgent: string) => {
     const username = decoded.username;
@@ -188,12 +245,14 @@ const socketController = (io: Server) => {
             const decoded = await verifySocketToken(socket);
             (socket as any).decoded = { ...decoded };
             (socket as any).userAgent = userAgent;
+
             next();
         } catch (error) {
             console.error("Authentication error:", error.message);
             next(error);
         }
     });
+
 
     io.on("connection", async (socket) => {
         try {

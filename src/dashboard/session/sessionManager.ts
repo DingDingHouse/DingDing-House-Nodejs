@@ -5,7 +5,7 @@ import { User } from "../users/userModel";
 import { IUser } from "../users/userType";
 import { GameSession } from "./gameSession";
 import { PlatformSessionModel } from "./sessionModel";
-
+import { pubClient } from "../../redisClient";
 
 class SessionManager {
     private platformSessions: Map<string, PlayerSocket> = new Map();
@@ -24,10 +24,9 @@ class SessionManager {
             console.log(`PLATFORM STARTED : `, player.playerData.username)
         }
     }
-
     public async endPlatformSession(playerId: string) {
         try {
-            const platformSession = this.getPlayerPlatform(playerId)
+            const platformSession = this.getPlayerPlatform(playerId);
             if (platformSession) {
                 platformSession.setExitTime();
                 this.platformSessions.delete(playerId);
@@ -37,13 +36,25 @@ class SessionManager {
                 await PlatformSessionModel.updateOne(
                     { playerId: playerId, entryTime: platformSession.entryTime },
                     { $set: { exitTime: platformSession.exitTime } }
-                )
+                );
+
+                let existingSession = await pubClient.get(`socket:${playerId}`);
+                if (existingSession) {
+                    let sessionData = JSON.parse(existingSession);
+
+                    if (sessionData.gameSocketId) {
+                        console.log(`⚠️ Keeping platform session in Redis for ${playerId} because game is still active`);
+                    } else {
+                        console.log(`🛑 Player ${playerId} exited completely, removing platform socket`);
+                        await pubClient.del(`socket:${playerId}`);
+                    }
+                }
             }
         } catch (error) {
-            console.error(`Failed to save platform session for player: ${playerId}`, error);
+            console.error(`Failed to delete platform session for player: ${playerId}`, error);
         }
-
     }
+
 
 
     public async startGameSession(playerId: string, gameId: string, credits: number) {
@@ -71,11 +82,14 @@ class SessionManager {
         }
     }
 
+
+
+
     public async endGameSession(playerId: string, credits: number) {
         try {
             const platformSession = this.getPlayerPlatform(playerId);
             if (platformSession && platformSession.currentGameSession) {
-                // End and delete the current game session
+                // ✅ End the current game session
                 platformSession.currentGameSession.endSession(platformSession.playerData.credits);
                 const gameSessionData = platformSession.currentGameSession.getSummary();
 
@@ -87,13 +101,23 @@ class SessionManager {
                 );
 
                 platformSession.currentGameSession = null;
-                console.log(`Current game session deleted for player: ${playerId}`);
+                console.log(`🛑 Game session ended for player: ${playerId}`);
+                let existingSession = await pubClient.get(`socket:${playerId}`);
+                if (existingSession) {
+                    let sessionData = JSON.parse(existingSession);
+                    sessionData.gameSocketId = null;
+                    sessionData.connectedAt = new Date().toISOString();
+                    await pubClient.set(`socket:${playerId}`, JSON.stringify(sessionData));
+                    console.log(`🔄 Game socket removed in Redis for player: ${playerId}`);
+                } else {
+                    console.warn(`⚠️ No existing session found in Redis for ${playerId}, skipping update.`);
+                }
             }
         } catch (error) {
             console.error(`Failed to delete the current game session for player: ${playerId}`, error);
         }
-
     }
+
 
     private async notifyManagers(managerName: string, eventType: string, payload: any) {
 
