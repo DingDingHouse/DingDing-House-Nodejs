@@ -40,7 +40,7 @@ export function initializeGameSettings(gameData: any, gameInstance: SLLS) {
             freeSpinPayout: 0,
             freeSpinsAdded: false,
         },
-        jackpotPayout:gameData.gameSettings.jackpotPayout,
+        jackpotPayout:gameData.gameSettings.jackpotMultiplier,
         jackpotCombination:gameData.gameSettings.jackpotCombination,
         wild: {
             SymbolName: "",
@@ -149,6 +149,8 @@ export function sendInitData(gameInstance: SLLS) {
             totalbet: gameInstance.playerData.totalbet,
         },
     };
+
+    
 
     gameInstance.sendMessage("InitData", dataToSend);
 }
