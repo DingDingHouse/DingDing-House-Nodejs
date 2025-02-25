@@ -182,7 +182,7 @@ export function checkForWin(gameInstance: SLBS) {
          if (validIndices.length > 0) {
              gameInstance.settings._winData.winningSymbols.push(validIndices);
 
-
+         }
 
         gameInstance.playerData.currentWining += totalpayout;
         gameInstance.playerData.haveWon = parseFloat(
@@ -203,6 +203,7 @@ export function checkForWin(gameInstance: SLBS) {
         console.error("Error in checkForWin", error);
         return [];
     }
+
 }
 
 
