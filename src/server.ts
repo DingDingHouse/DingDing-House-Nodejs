@@ -45,7 +45,7 @@ app.use((req, res, next) => {
 
 app.use(
   cors({
-    origin: [`*.${config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com"],
+    origin: [`*.${config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com", "http://localhost:3000"],
     credentials: true,
   })
 );
@@ -86,7 +86,7 @@ app.use("/api/session", sessionRoutes);
 
 const io = new Server(server, {
   cors: {
-    origin: [`*.${config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com",],
+    origin: [`*.${config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true,
   },
