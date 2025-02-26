@@ -246,9 +246,7 @@ const socketController = (io: Server) => {
     // Token verification middleware
     io.use(async (socket: Socket, next: (err?: Error) => void) => {
 
-        Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
-            io.adapter(createAdapter(pubClient, subClient));
-        })
+   
         const userAgent = socket.request.headers['user-agent'];
         try {
             const decoded = await verifySocketToken(socket);
