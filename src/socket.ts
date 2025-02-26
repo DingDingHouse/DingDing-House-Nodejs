@@ -7,7 +7,8 @@ import { messageType } from "./game/Utils/gameUtils";
 import Manager from "./Manager";
 import { sessionManager } from "./dashboard/session/sessionManager";
 import { IUser } from "./dashboard/users/userType";
-import { pubClient } from "./redisClient";
+import { pubClient, subClient } from "./redisClient";
+import { createAdapter } from "@socket.io/redis-adapter";
 
 interface DecodedToken {
     username: string;
@@ -15,7 +16,10 @@ interface DecodedToken {
 }
 
 const extractStickySessionCookie = (cookieHeader?: string): string | null => {
-    if (!cookieHeader) return null;
+    if (!cookieHeader) {
+        console.log("No cookie header found");
+        return null;
+    };
 
     const cookies = cookieHeader.split(";").map(cookie => cookie.trim());
     for (const cookie of cookies) {
@@ -24,7 +28,6 @@ const extractStickySessionCookie = (cookieHeader?: string): string | null => {
             return cookie.split("=")[1];
         }
     }
-    console.log(cookies, 'cookies')
     return null;
 };
 
@@ -40,7 +43,6 @@ const verifySocketToken = (socket: Socket): Promise<DecodedToken> => {
                 } else if (!decoded || !decoded.username) {
                     reject(new Error("Token does not contain required fields"));
                 } else {
-                    extractStickySessionCookie();
                     resolve(decoded as DecodedToken);
                 }
             });
@@ -243,6 +245,10 @@ const socketController = (io: Server) => {
 
     // Token verification middleware
     io.use(async (socket: Socket, next: (err?: Error) => void) => {
+
+        Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+            io.adapter(createAdapter(pubClient, subClient));
+        })
         const userAgent = socket.request.headers['user-agent'];
         try {
             const decoded = await verifySocketToken(socket);
