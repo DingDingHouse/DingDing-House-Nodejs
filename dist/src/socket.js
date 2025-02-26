@@ -19,9 +19,13 @@ const Player_1 = __importDefault(require("./Player"));
 const Manager_1 = __importDefault(require("./Manager"));
 const sessionManager_1 = require("./dashboard/session/sessionManager");
 const redisClient_1 = require("./redisClient");
+const redis_adapter_1 = require("@socket.io/redis-adapter");
 const extractStickySessionCookie = (cookieHeader) => {
-    if (!cookieHeader)
+    if (!cookieHeader) {
+        console.log("No cookie header found");
         return null;
+    }
+    ;
     const cookies = cookieHeader.split(";").map(cookie => cookie.trim());
     for (const cookie of cookies) {
         if (cookie.startsWith("AWSALB=") || cookie.startsWith("AWSALBCORS=")) {
@@ -29,7 +33,6 @@ const extractStickySessionCookie = (cookieHeader) => {
             return cookie.split("=")[1];
         }
     }
-    console.log(cookies, 'cookies');
     return null;
 };
 const verifySocketToken = (socket) => {
@@ -45,7 +48,6 @@ const verifySocketToken = (socket) => {
                     reject(new Error("Token does not contain required fields"));
                 }
                 else {
-                    extractStickySessionCookie();
                     resolve(decoded);
                 }
             });
@@ -200,6 +202,9 @@ const handleManagerConnection = (socket, decoded, userAgent) => __awaiter(void 0
 const socketController = (io) => {
     // Token verification middleware
     io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
+        Promise.all([redisClient_1.pubClient.connect(), redisClient_1.subClient.connect()]).then(() => {
+            io.adapter((0, redis_adapter_1.createAdapter)(redisClient_1.pubClient, redisClient_1.subClient));
+        });
         const userAgent = socket.request.headers['user-agent'];
         try {
             const decoded = yield verifySocketToken(socket);
