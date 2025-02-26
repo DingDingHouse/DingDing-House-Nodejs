@@ -71,7 +71,7 @@ const handlePlayerConnection = async (socket: Socket, decoded: { username: strin
     let existingPlayer = sessionManager.getPlayerPlatform(username);
     let sessionData: any = {};
 
-    const stickySessionCookie = socket.handshake.headers.awsALBCookie;
+    const stickySessionCookie = socket.handshake.auth.awsALBCookie;
     console.log(stickySessionCookie, 'stickySessionCookie')
     const redisSession = await pubClient.get(`socket:${username}`);
     if (redisSession) {

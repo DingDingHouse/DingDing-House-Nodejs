@@ -2,7 +2,6 @@ import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import cookieParser from "cookie-parser";
 import globalErrorHandler from "./dashboard/middleware/globalHandler";
 import adminRoutes from "./dashboard/admin/adminRoutes";
 import userRoutes from "./dashboard/users/userRoutes";
@@ -17,38 +16,37 @@ import { checkUser } from "./dashboard/middleware/checkUser";
 import toggleRoutes from "./dashboard/Toggle/ToggleRoutes";
 import { checkRole } from "./dashboard/middleware/checkRole";
 import sessionRoutes from "./dashboard/session/sessionRoutes";
-import { addOrderToExistingGames } from "./dashboard/games/script";
+import { addOrderToExistingGames } from "./dashboard/games/script"
 declare module "express-session" {
   interface Session {
     captcha?: string;
   }
 }
 
+
 const app = express();
-// Cloudinary configs
+//Cloudinary configs
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ limit: "25mb", extended: true }));
 
-// Use cookie-parser middleware
-app.use(cookieParser());
-
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
   next();
 });
 
-app.use(
-  cors({
-    origin: [`*.${config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com", "http://localhost:3000"],
-    credentials: true,
-  })
-);
+
+
+app.use(cors({
+  origin: [`*.${config.hosted_url_cors}`, 'https://game-crm-rtp-backend.onrender.com'],
+
+}));
+
 
 const server = createServer(app);
 
@@ -80,20 +78,20 @@ app.use("/api/company", adminRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/games", gameRoutes);
-app.use("/api/payouts", checkUser, checkRole(["admin"]), payoutRoutes);
+app.use("/api/payouts", checkUser, checkRole(["admin"]), payoutRoutes)
 app.use("/api/toggle", checkUser, checkRole(["admin"]), toggleRoutes);
 app.use("/api/session", sessionRoutes);
 
 const io = new Server(server, {
   cors: {
-    origin: [`*.${config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com", "http://localhost:3000"],
+    origin: "*",
     methods: ["GET", "POST"],
-    credentials: true,
   },
 });
 
 socketController(io);
 addOrderToExistingGames();
+
 
 app.use(globalErrorHandler);
 
