@@ -16,7 +16,7 @@ import { checkUser } from "./dashboard/middleware/checkUser";
 import toggleRoutes from "./dashboard/Toggle/ToggleRoutes";
 import { checkRole } from "./dashboard/middleware/checkRole";
 import sessionRoutes from "./dashboard/session/sessionRoutes";
-import {addOrderToExistingGames} from "./dashboard/games/script"
+import { addOrderToExistingGames } from "./dashboard/games/script"
 declare module "express-session" {
   interface Session {
     captcha?: string;
@@ -43,7 +43,8 @@ app.use((req, res, next) => {
 
 
 app.use(cors({
-  origin: [`*.${config.hosted_url_cors}`, 'https://game-crm-rtp-backend.onrender.com']
+  origin: [`*.${config.hosted_url_cors}`, 'https://game-crm-rtp-backend.onrender.com'],
+  credentials: true,
 }));
 
 

@@ -4,11 +4,11 @@ import { Player as PlayerModel, User } from "./dashboard/users/userModel";
 import { config } from "./config/config";
 import Player from "./Player";
 import { messageType } from "./game/Utils/gameUtils";
-import Manager from "./Manager";
+import Manager from "./Manager";app
 import { sessionManager } from "./dashboard/session/sessionManager";
 import { IUser } from "./dashboard/users/userType";
-import { pubClient, subClient } from "./redisClient";
-import { createAdapter } from "@socket.io/redis-adapter";
+import { pubClient } from "./redisClient";
+
 
 interface DecodedToken {
     username: string;
@@ -246,7 +246,7 @@ const socketController = (io: Server) => {
     // Token verification middleware
     io.use(async (socket: Socket, next: (err?: Error) => void) => {
 
-   
+
         const userAgent = socket.request.headers['user-agent'];
         try {
             const decoded = await verifySocketToken(socket);
