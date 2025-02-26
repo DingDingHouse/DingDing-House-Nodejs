@@ -16,6 +16,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const globalHandler_1 = __importDefault(require("./dashboard/middleware/globalHandler"));
 const adminRoutes_1 = __importDefault(require("./dashboard/admin/adminRoutes"));
 const userRoutes_1 = __importDefault(require("./dashboard/users/userRoutes"));
@@ -32,21 +33,23 @@ const checkRole_1 = require("./dashboard/middleware/checkRole");
 const sessionRoutes_1 = __importDefault(require("./dashboard/session/sessionRoutes"));
 const script_1 = require("./dashboard/games/script");
 const app = (0, express_1.default)();
-//Cloudinary configs
+// Cloudinary configs
 app.use(express_1.default.json({ limit: "25mb" }));
 app.use(express_1.default.urlencoded({ limit: "25mb", extended: true }));
+// Use cookie-parser middleware
+app.use((0, cookie_parser_1.default)());
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
         return res.sendStatus(200);
     }
     next();
 });
 app.use((0, cors_1.default)({
-    origin: [`*.${config_1.config.hosted_url_cors}`, 'https://game-crm-rtp-backend.onrender.com'],
+    origin: [`*.${config_1.config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com", "*"],
     credentials: true,
 }));
 const server = (0, http_1.createServer)(app);
@@ -83,8 +86,9 @@ app.use("/api/toggle", checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin
 app.use("/api/session", sessionRoutes_1.default);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: "*",
+        origin: [`*.${config_1.config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com", "*"],
         methods: ["GET", "POST"],
+        credentials: true,
     },
 });
 (0, socket_1.default)(io);
