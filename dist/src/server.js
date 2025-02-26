@@ -49,7 +49,7 @@ app.use((req, res, next) => {
     next();
 });
 app.use((0, cors_1.default)({
-    origin: [`*.${config_1.config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com"],
+    origin: [`*.${config_1.config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com", "http://localhost:3000"],
     credentials: true,
 }));
 const server = (0, http_1.createServer)(app);
@@ -86,7 +86,7 @@ app.use("/api/toggle", checkUser_1.checkUser, (0, checkRole_1.checkRole)(["admin
 app.use("/api/session", sessionRoutes_1.default);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: [`*.${config_1.config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com",],
+        origin: [`*.${config_1.config.hosted_url_cors}`, "https://game-crm-rtp-backend.onrender.com", "http://localhost:3000"],
         methods: ["GET", "POST"],
         credentials: true,
     },

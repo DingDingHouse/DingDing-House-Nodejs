@@ -19,21 +19,6 @@ const Player_1 = __importDefault(require("./Player"));
 const Manager_1 = __importDefault(require("./Manager"));
 const sessionManager_1 = require("./dashboard/session/sessionManager");
 const redisClient_1 = require("./redisClient");
-const extractStickySessionCookie = (cookieHeader) => {
-    if (!cookieHeader) {
-        console.log("No cookie header found");
-        return null;
-    }
-    ;
-    const cookies = cookieHeader.split(";").map(cookie => cookie.trim());
-    for (const cookie of cookies) {
-        if (cookie.startsWith("AWSALB=") || cookie.startsWith("AWSALBCORS=")) {
-            console.log(cookie.split("=")[1]);
-            return cookie.split("=")[1];
-        }
-    }
-    return null;
-};
 const verifySocketToken = (socket) => {
     return new Promise((resolve, reject) => {
         const token = socket.handshake.auth.token;
@@ -83,7 +68,8 @@ const handlePlayerConnection = (socket, decoded, userAgent) => __awaiter(void 0,
     const { credits, status, managerName } = yield getPlayerDetails(username);
     let existingPlayer = sessionManager_1.sessionManager.getPlayerPlatform(username);
     let sessionData = {};
-    const stickySessionCookie = extractStickySessionCookie(socket.handshake.headers.cookie);
+    const stickySessionCookie = socket.handshake.headers.awsALBCookie;
+    console.log(stickySessionCookie, 'stickySessionCookie');
     const redisSession = yield redisClient_1.pubClient.get(`socket:${username}`);
     if (redisSession) {
         try {

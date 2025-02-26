@@ -15,21 +15,7 @@ interface DecodedToken {
     role?: string;
 }
 
-const extractStickySessionCookie = (cookieHeader?: string): string | null => {
-    if (!cookieHeader) {
-        console.log("No cookie header found");
-        return null;
-    };
 
-    const cookies = cookieHeader.split(";").map(cookie => cookie.trim());
-    for (const cookie of cookies) {
-        if (cookie.startsWith("AWSALB=") || cookie.startsWith("AWSALBCORS=")) {
-            console.log(cookie.split("=")[1])
-            return cookie.split("=")[1];
-        }
-    }
-    return null;
-};
 
 
 const verifySocketToken = (socket: Socket): Promise<DecodedToken> => {
@@ -85,8 +71,8 @@ const handlePlayerConnection = async (socket: Socket, decoded: { username: strin
     let existingPlayer = sessionManager.getPlayerPlatform(username);
     let sessionData: any = {};
 
-    const stickySessionCookie = extractStickySessionCookie(socket.handshake.headers.cookie);
-
+    const stickySessionCookie = socket.handshake.headers.awsALBCookie;
+    console.log(stickySessionCookie, 'stickySessionCookie')
     const redisSession = await pubClient.get(`socket:${username}`);
     if (redisSession) {
         try {
