@@ -22,14 +22,13 @@ const extractStickySessionCookie = (cookieHeader?: string): string | null => {
         if (cookie.startsWith("AWSALB=") || cookie.startsWith("AWSALBCORS=")) {
             console.log(cookie.split("=")[1])
             return cookie.split("=")[1];
-        } else {
-            console.log('No sticky session cookie found')
         }
     }
+    console.log(cookies, 'cookies')
     return null;
 };
 
-extractStickySessionCookie()
+
 const verifySocketToken = (socket: Socket): Promise<DecodedToken> => {
     return new Promise((resolve, reject) => {
         const token = socket.handshake.auth.token;
@@ -41,6 +40,7 @@ const verifySocketToken = (socket: Socket): Promise<DecodedToken> => {
                 } else if (!decoded || !decoded.username) {
                     reject(new Error("Token does not contain required fields"));
                 } else {
+                    extractStickySessionCookie();
                     resolve(decoded as DecodedToken);
                 }
             });
