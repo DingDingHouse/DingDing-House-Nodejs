@@ -19,7 +19,6 @@ const Player_1 = __importDefault(require("./Player"));
 const Manager_1 = __importDefault(require("./Manager"));
 const sessionManager_1 = require("./dashboard/session/sessionManager");
 const redisClient_1 = require("./redisClient");
-const redis_adapter_1 = require("@socket.io/redis-adapter");
 const extractStickySessionCookie = (cookieHeader) => {
     if (!cookieHeader) {
         console.log("No cookie header found");
@@ -202,9 +201,6 @@ const handleManagerConnection = (socket, decoded, userAgent) => __awaiter(void 0
 const socketController = (io) => {
     // Token verification middleware
     io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
-        Promise.all([redisClient_1.pubClient.connect(), redisClient_1.subClient.connect()]).then(() => {
-            io.adapter((0, redis_adapter_1.createAdapter)(redisClient_1.pubClient, redisClient_1.subClient));
-        });
         const userAgent = socket.request.headers['user-agent'];
         try {
             const decoded = yield verifySocketToken(socket);
