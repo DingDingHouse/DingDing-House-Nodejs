@@ -20,6 +20,7 @@ const extractStickySessionCookie = (cookieHeader?: string): string | null => {
     const cookies = cookieHeader.split(";").map(cookie => cookie.trim());
     for (const cookie of cookies) {
         if (cookie.startsWith("AWSALB=") || cookie.startsWith("AWSALBCORS=")) {
+            console.log(cookie.split("=")[1])
             return cookie.split("=")[1];
         }
     }
