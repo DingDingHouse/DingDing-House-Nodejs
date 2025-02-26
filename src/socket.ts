@@ -27,7 +27,7 @@ const extractStickySessionCookie = (cookieHeader?: string): string | null => {
     return null;
 };
 
-
+extractStickySessionCookie()
 const verifySocketToken = (socket: Socket): Promise<DecodedToken> => {
     return new Promise((resolve, reject) => {
         const token = socket.handshake.auth.token;
