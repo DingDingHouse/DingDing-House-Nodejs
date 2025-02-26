@@ -33,4 +33,4 @@ jobs:
           git config --global user.email "rahulrawat.trippybug@gmail.com"
           git add -f .
           git commit -m "Auto-build: Updated build files" || echo "No changes to commit"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/BackendsByMTT/game-crm-rtp-backend.git dev-redis
+          git push https://x-access-token:${{ secrets.G_TOKEN }}@github.com/BackendsByMTT/game-crm-rtp-backend.git dev-redis
