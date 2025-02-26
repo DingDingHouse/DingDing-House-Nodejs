@@ -45,6 +45,7 @@ app.use((req, res, next) => {
 app.use(cors({
   origin: [`*.${config.hosted_url_cors}`, 'https://game-crm-rtp-backend.onrender.com'],
   credentials: true,
+
 }));
 
 

@@ -4,7 +4,7 @@ import { Player as PlayerModel, User } from "./dashboard/users/userModel";
 import { config } from "./config/config";
 import Player from "./Player";
 import { messageType } from "./game/Utils/gameUtils";
-import Manager from "./Manager";app
+import Manager from "./Manager";
 import { sessionManager } from "./dashboard/session/sessionManager";
 import { IUser } from "./dashboard/users/userType";
 import { pubClient } from "./redisClient";
