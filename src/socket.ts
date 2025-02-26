@@ -22,6 +22,8 @@ const extractStickySessionCookie = (cookieHeader?: string): string | null => {
         if (cookie.startsWith("AWSALB=") || cookie.startsWith("AWSALBCORS=")) {
             console.log(cookie.split("=")[1])
             return cookie.split("=")[1];
+        } else {
+            console.log('No sticky session cookie found')
         }
     }
     return null;
