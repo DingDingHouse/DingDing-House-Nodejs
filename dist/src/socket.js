@@ -28,13 +28,10 @@ const extractStickySessionCookie = (cookieHeader) => {
             console.log(cookie.split("=")[1]);
             return cookie.split("=")[1];
         }
-        else {
-            console.log('No sticky session cookie found');
-        }
     }
+    console.log(cookies, 'cookies');
     return null;
 };
-extractStickySessionCookie();
 const verifySocketToken = (socket) => {
     return new Promise((resolve, reject) => {
         const token = socket.handshake.auth.token;
@@ -48,6 +45,7 @@ const verifySocketToken = (socket) => {
                     reject(new Error("Token does not contain required fields"));
                 }
                 else {
+                    extractStickySessionCookie();
                     resolve(decoded);
                 }
             });
