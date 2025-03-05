@@ -217,7 +217,7 @@ const socketController = (io: Server) => {
             socket.disconnect(true);
         }
     });
-
+//
 
     // Error handling middleware
     io.use((socket: Socket, next: (err?: Error) => void) => {
