@@ -17,6 +17,7 @@ import toggleRoutes from "./dashboard/Toggle/ToggleRoutes";
 import { checkRole } from "./dashboard/middleware/checkRole";
 import sessionRoutes from "./dashboard/session/sessionRoutes";
 import {addOrderToExistingGames} from "./dashboard/games/script"
+import path from "path";
 declare module "express-session" {
   interface Session {
     captcha?: string;
@@ -72,7 +73,11 @@ app.get("/captcha", async (req: Request, res: Response, next: NextFunction) => {
     next(error);
   }
 });
+app.use(express.static(path.join(__dirname, "public")));
 
+app.get("/test", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 app.use("/api/company", adminRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/transactions", transactionRoutes);

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ding Ding</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600&display=swap">
+    <style>
+        :root {
+            --background-color: #000000;
+            --text-color: #ffffff;
+            --accent-color: #2997ff;
+            --button-color: #2997ff;
+            --secondary-text: #86868b;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            line-height: 1.47059;
+            letter-spacing: -0.022em;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        nav {
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: saturate(180%) blur(20px);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .logo img {
+            height: 44px;
+            transition: opacity 0.3s ease;
+        }
+
+        .logo img:hover {
+            opacity: 0.8;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 8rem 2rem 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 56px;
+            line-height: 1.07143;
+            font-weight: 600;
+            letter-spacing: -0.005em;
+            margin-bottom: 0.5em;
+        }
+
+        .subtitle {
+            font-size: 28px;
+            line-height: 1.10722;
+            font-weight: 400;
+            letter-spacing: .004em;
+            color: var(--secondary-text);
+            margin-bottom: 3rem;
+        }
+
+        .logo-container {
+            width: 340px;
+            height: 340px;
+            margin: 4rem auto;
+            position: relative;
+            transition: transform 1s cubic-bezier(0.33, 1, 0.68, 1);
+        }
+
+        .logo-container:hover {
+            transform: scale(1.02);
+        }
+
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: brightness(1.1);
+        }
+
+        .download-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .download-btn {
+            background: none;
+            color: var(--button-color);
+            text-decoration: none;
+            font-size: 21px;
+            line-height: 1.381;
+            font-weight: 400;
+            letter-spacing: .011em;
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn::after {
+            content: '→';
+            margin-left: 0.5em;
+            transition: transform 0.3s ease;
+        }
+
+        .download-btn:hover::after {
+            transform: translateX(5px);
+        }
+
+        @media (max-width: 1068px) {
+            h1 {
+                font-size: 48px;
+            }
+
+            .subtitle {
+                font-size: 24px;
+            }
+
+            .logo-container {
+                width: 280px;
+                height: 280px;
+            }
+        }
+
+        @media (max-width: 734px) {
+            h1 {
+                font-size: 40px;
+            }
+
+            .subtitle {
+                font-size: 21px;
+            }
+
+            .logo-container {
+                width: 240px;
+                height: 240px;
+            }
+
+            .download-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 1.5rem;
+            }
+        }
+
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 1s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+        }
+
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="logo">
+            <img src="https://devplatform.dingdinghouse.com/_next/image?url=%2Fhome%2Fdingding.gif&w=640&q=100" alt="Ding Ding">
+        </div>
+    </nav>
+
+    <main>
+        <h1 class="fade-up">Ding Ding House</h1>
+        <p class="subtitle fade-up" style="animation-delay: 0.2s">Experience gaming reimagined.</p>
+        
+        <div class="logo-container fade-up" style="animation-delay: 0.4s">
+            <img src="https://devplatform.dingdinghouse.com/_next/image?url=%2Fhome%2Fdingding.gif&w=640&q=100" alt="Logo">
+        </div>
+
+        <div class="download-buttons fade-up" style="animation-delay: 0.6s">
+            <a href="#" id="downloadAPK" class="download-btn">Download for Android</a>
+            <a href="https://www.dingdinghouse.com" class="download-btn">Play in browser</a>
+        </div>
+    </main>
+
+    <script>
+        document.querySelector('#downloadAPK').addEventListener('click', (e) => {
+            e.preventDefault();
+            alert('Download started for Android version');
+        });
+
+        // Add smooth scroll behavior
+        document.documentElement.style.scrollBehavior = 'smooth';
+
+        // Intersection Observer for fade-up animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.visibility = 'visible';
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+
+        document.querySelectorAll('.fade-up').forEach((el) => observer.observe(el));
+    </script>
+</body>
+</html>
