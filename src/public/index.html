@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ding Ding House</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(to right, #a855f7, #3b82f6);
+            --button-gradient: linear-gradient(to right, #9333ea, #3b82f6);
+            --button-hover-gradient: linear-gradient(to right, #7e22ce, #2563eb);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+            background-color: #0f0f1a;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Background image with overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://res.cloudinary.com/dgktgzmjo/image/upload/v1741179036/Screenshot_2025-03-05_at_6.17.25_PM_wsow75.png') no-repeat center center/cover;
+            opacity: 0.2;
+            z-index: -2;
+        }
+
+        /* Gradient overlay */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom right, rgba(76, 29, 149, 0.8), rgba(15, 23, 42, 0.9), rgba(0, 0, 0, 0.95));
+            z-index: -1;
+        }
+
+        /* Background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: pulse 8s infinite;
+        }
+
+        .particle:nth-child(1) {
+            top: 10%;
+            right: 10%;
+            width: 30vw;
+            height: 30vw;
+            animation-delay: 0s;
+        }
+
+        .particle:nth-child(2) {
+            bottom: 5%;
+            left: 5%;
+            width: 40vw;
+            height: 40vw;
+            animation-delay: 2s;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.15;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.2;
+            }
+        }
+
+        /* Navbar */
+        nav {
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-container img {
+            height: 3.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-container img:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Main content */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 8rem 2rem 4rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        h1 {
+            font-size: 4rem;
+            line-height: 1.1;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 1s forwards;
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            line-height: 1.4;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.8);
+            max-width: 36rem;
+            margin: 0 auto 3rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 1s forwards 0.3s;
+        }
+
+        /* Logo display */
+        .logo-display {
+            position: relative;
+            width: 25rem;
+            height: 25rem;
+            margin: 4rem auto;
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            animation: fadeUpScale 1s forwards 0.5s;
+        }
+
+        .logo-glow {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            opacity: 0.3;
+            filter: blur(2rem);
+            animation: pulse 4s infinite;
+        }
+
+        .logo-display img {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.5));
+        }
+
+        /* CTA Buttons */
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 3rem 0;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 1s forwards 0.7s;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 9999px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button.primary {
+            background: var(--button-gradient);
+            color: white;
+            box-shadow: 0 10px 25px -5px rgba(147, 51, 234, 0.3);
+        }
+
+        .cta-button.primary:hover {
+            background: var(--button-hover-gradient);
+            box-shadow: 0 15px 30px -5px rgba(147, 51, 234, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .cta-button.secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+        }
+
+        .cta-button.secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .cta-button .icon {
+            transition: transform 0.3s ease;
+        }
+
+        .cta-button:hover .icon-arrow {
+            transform: translateX(4px);
+        }
+
+        /* Features section */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 8rem;
+        }
+
+        .feature-card {
+            background-color: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .feature-card:hover {
+            border-color: rgba(168, 85, 247, 0.5);
+            box-shadow: 0 10px 30px -15px rgba(168, 85, 247, 0.2);
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .feature-card p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.125rem;
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        footer {
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        footer p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1rem;
+        }
+
+        /* Animations */
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeUpScale {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 3rem;
+            }
+
+            .subtitle {
+                font-size: 1.25rem;
+            }
+
+            .logo-display {
+                width: 16rem;
+                height: 16rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .logo-text {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .logo-display {
+                width: 12rem;
+                height: 12rem;
+            }
+
+            main {
+                padding: 7rem 1rem 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background particles -->
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+ 
+
+    <!-- Main content -->
+    <main>
+        <!-- Hero section -->
+        <div class="hero">
+            <h1>Ding Ding House</h1>
+            <p class="subtitle">Experience gaming reimagined for the modern era</p>
+        </div>
+
+        <!-- Logo display -->
+        <div class="logo-display">
+            <div class="logo-glow"></div>
+            <img src="https://devplatform.dingdinghouse.com/_next/image?url=%2Fhome%2Fdingding.gif&w=640&q=100" alt="Ding Ding Logo">
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="cta-buttons">
+            <a href="https://dingdingapk.s3.ap-south-1.amazonaws.com/build-1741261300323.apk" id="downloadAPK" class="cta-button primary">
+                <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download for Android
+                <svg class="icon icon-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+            <a href="https://www.dingdinghouse.com" class="cta-button secondary">
+                <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                Play in Browser
+                <svg class="icon icon-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+        </div>
+
+        
+    </main>
+
+
+    <script>
+        // Set current year in footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        // Download button alert
+        document.getElementById('downloadAPK').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Download started for Android version');
+        });
+
+        // Animate feature cards on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const featureCards = document.querySelectorAll('.feature-card');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animation = `fadeUp 1s forwards ${entry.target.style.animationDelay}`;
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            featureCards.forEach(card => {
+                observer.observe(card);
+            });
+        });
+    </script>
+</body>
+</html>
