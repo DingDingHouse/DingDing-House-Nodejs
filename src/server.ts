@@ -75,7 +75,7 @@ app.get("/captcha", async (req: Request, res: Response, next: NextFunction) => {
 });
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/test", (req, res) => {
+app.get("/play", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 app.use("/api/company", adminRoutes);
