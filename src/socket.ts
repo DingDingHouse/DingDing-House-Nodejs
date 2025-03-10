@@ -61,13 +61,19 @@ const handlePlayerConnection = async (socket: Socket, decoded: DecodedToken, use
         const platformId = socket.handshake.auth.platformId;
         const origin = socket.handshake.auth.origin;
         const gameId = socket.handshake.auth.gameId;
+        console.log(`Handling player connection for user ${username}`);
+        console.log(`Platform ID: ${platformId}, Origin: ${origin}, Game ID: ${gameId}`);
+
         const { credits, status, managerName } = await getPlayerDetails(username);
+        console.log(`Player details - Credits: ${credits}, Status: ${status}, Manager Name: ${managerName}`);
 
         let existingPlayer = sessionManager.getPlayerPlatform(username);
+        console.log(`Existing player: ${existingPlayer ? 'Yes' : 'No'}`);
 
         if (existingPlayer) {
             // Platform connection handling
             if (origin) {
+                console.log(`Handling platform connection for user ${username}`);
                 if (existingPlayer.platformData.platformId !== platformId) {
                     console.log(`Duplicate platform detected for ${username}`);
                     socket.emit("alert", "NewTab");
@@ -90,6 +96,7 @@ const handlePlayerConnection = async (socket: Socket, decoded: DecodedToken, use
 
             // Game connection handling
             if (gameId || !gameId) {
+                console.log(`Handling game connection for user ${username}`);
                 if (!existingPlayer.platformData.socket || !existingPlayer.platformData.socket.connected) {
                     console.log("Platform connection required before joining a game.");
                     socket.emit(messageType.ERROR, "Platform connection required before joining a game.");
@@ -106,6 +113,7 @@ const handlePlayerConnection = async (socket: Socket, decoded: DecodedToken, use
 
         // New platform connection
         if (origin) {
+            console.log(`New platform connection for user ${username}`);
             const newUser = new Player(username, decoded.role, status, credits, userAgent, socket, managerName);
             newUser.platformData.platformId = platformId;
             newUser.sendAlert(`Player initialized for ${username} on platform ${origin}`, false);
