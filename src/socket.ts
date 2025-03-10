@@ -140,14 +140,14 @@ const handlePlayerConnection = async (socket: Socket, decoded: DecodedToken, use
         }
 
         // Invalid connection attempt
+        console.log(`Invalid connection attempt for user ${username}`);
         socket.emit(messageType.ERROR, "Invalid connection attempt.");
-        // socket.disconnect(true);
+        socket.disconnect(true);
     } catch (error) {
         console.error(`Error in handlePlayerConnection for user ${decoded?.username || 'unknown'}:`, error);
         socket.emit(messageType.ERROR, `Error in handlePlayerConnection for user ${decoded?.username || 'unknown'}:`, error);
         socket.disconnect(true);
     }
-
 };
 
 

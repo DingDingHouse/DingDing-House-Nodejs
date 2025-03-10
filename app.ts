@@ -143,9 +143,9 @@ const startServer = async () => {
         methods: ["GET", "POST"],
       },
       transports: ["websocket"],
-      pingInterval: 60000,
+      pingInterval: 25000,
       pingTimeout: 60000,
-      allowEIO3: false,
+      allowEIO3: false
     });
 
     // Setup cluster adapter and worker
